@@ -9,6 +9,8 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
+console.log(server.address().port);
+
 app.use(express.static('public'));
 app.use(bodyParser.json());
 
