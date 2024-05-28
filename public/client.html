@@ -10,7 +10,7 @@
   <button onclick="sendInput()">Submit</button>
 
   <script>
-    const socket = new WebSocket('ws://admin-office-699m.onrender.com:8080');
+    const socket = new WebSocket('wss://admin-office-699m.onrender.com:8080');
 
     socket.onopen = () => {
       console.log('Connected to server');
