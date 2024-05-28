@@ -9,8 +9,6 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-console.log(server.address());
-
 app.use(express.static('public'));
 app.use(bodyParser.json());
 
@@ -40,10 +38,21 @@ function getClientData(callback) {
 }
 
 wss.on('connection', (ws) => {
+  console.log('Client connected');
   const clientId = Date.now().toString(); // Use timestamp as a simple client ID
   addClientToDatabase(clientId);
+  
+  ws.on('close', () => {
+    console.log('Client disconnected');
+  });
+
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+  });
+});
 
   ws.on('message', (message) => {
+  	ws.send(`Server received: ${message}`);
     const data = JSON.parse(message);
     if (data.type === 'input') {
       db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
