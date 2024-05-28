@@ -49,7 +49,6 @@ wss.on('connection', (ws) => {
   ws.on('error', (error) => {
     console.error('WebSocket error:', error);
   });
-});
 
   ws.on('message', (message) => {
   	ws.send(`Server received: ${message}`);
