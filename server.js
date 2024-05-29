@@ -43,30 +43,37 @@ app.get('/events', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    // Check if the client already exists in the database
-    db.get("SELECT id FROM clients WHERE id = ?", [clientId], (err, row) => {
-      if (!row) {
-        // If client doesn't exist, add it to the database
-        addClientToDatabase(clientId);
-      }
+    if (!clients[clientId]) {
+      addClientToDatabase(clientId);
+      clients[clientId] = res;
+    }
 
-      // Add client to memory if it doesn't already exist
-      if (!clients[clientId]) {
-        clients[clientId] = res;
-      }
-
-      // Handle client disconnection
-      req.on('close', () => {
-        delete clients[clientId];
-        removeClientFromDatabase(clientId);
-        broadcastAdminPanel();
-      });
-
+    req.on('close', () => {
+      delete clients[clientId];
+      removeClientFromDatabase(clientId);
       broadcastAdminPanel();
     });
+
+    broadcastAdminPanel();
   } else {
     // Respond with an error for invalid clientIds
     res.status(400).send('Invalid clientId');
+  }
+});
+
+app.post('/delete-client', (req, res) => {
+  const { clientId } = req.body;
+  if (clientId) {
+    // Remove the client from memory and database
+    if (clients[clientId]) {
+      clients[clientId].end(); // End the SSE connection
+      delete clients[clientId];
+    }
+    removeClientFromDatabase(clientId);
+    broadcastAdminPanel();
+    res.sendStatus(200);
+  } else {
+    res.status(400).send('Missing clientId');
   }
 });
 
@@ -90,12 +97,27 @@ app.post('/send-command', (req, res) => {
 
 app.post('/input', (req, res) => {
   const { clientId, input } = req.body;
-  db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
-    const inputs = JSON.parse(row.inputs);
-    inputs.push(input);
-    updateClientInputs(clientId, inputs);
-    broadcastAdminPanel();
+
+  if (!clientId) {
+    return res.status(400).send('Missing clientId');
+  }
+
+  // Check if the client already exists in the database
+  db.get("SELECT id FROM clients WHERE id = ?", [clientId], (err, row) => {
+    if (!row) {
+      // If client doesn't exist, add it to the database
+      addClientToDatabase(clientId);
+    }
+
+    // Update client inputs in the database
+    db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
+      const inputs = JSON.parse(row.inputs);
+      inputs.push(input);
+      updateClientInputs(clientId, inputs);
+      broadcastAdminPanel();
+    });
   });
+
   res.sendStatus(200);
 });
 
