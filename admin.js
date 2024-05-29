@@ -1,7 +1,7 @@
 // server.js
 const express = require('express');
 const http = require('http');
-const WebSocket = require('ws');
+const WebSocket = require('isomorphic-ws');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 
@@ -38,20 +38,10 @@ function getClientData(callback) {
 }
 
 wss.on('connection', (ws) => {
-  console.log('Client connected');
   const clientId = Date.now().toString(); // Use timestamp as a simple client ID
   addClientToDatabase(clientId);
-  
-  ws.on('close', () => {
-    console.log('Client disconnected');
-  });
-
-  ws.on('error', (error) => {
-    console.error('WebSocket error:', error);
-  });
 
   ws.on('message', (message) => {
-  	ws.send(`Server received: ${message}`);
     const data = JSON.parse(message);
     if (data.type === 'input') {
       db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
@@ -101,4 +91,4 @@ app.post('/delete-client', (req, res) => {
 
 server.listen(8080, () => {
   console.log('Server is listening on port 8080');
-}); 
+});
