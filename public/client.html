@@ -24,6 +24,7 @@
 
     function sendInput() {
       const userInput = document.getElementById('userInput').value;
+      console.log(userInput);
       fetch('/input', {
         method: 'POST',
         headers: {
