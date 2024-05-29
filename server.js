@@ -1,100 +1,73 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
-const session = require('express-session');
-const crypto = require('crypto');
 
 const app = express();
 app.use(express.static('public'));
 app.use(bodyParser.json());
 
-// Generate a strong secret key and consider storing it securely
-const secretKey = crypto.randomBytes(64).toString('hex');
-
-// Set up session middleware with the secret key
-app.use(session({
-  secret: secretKey, // Use the generated secret key
-  resave: false,
-  saveUninitialized: true,
-  cookie: { maxAge: 60000 } // Session duration in milliseconds
-}));
-
 // Initialize SQLite database
 const db = new sqlite3.Database(':memory:');
 
 db.serialize(() => {
-  db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, name TEXT, inputs TEXT)");
+  db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, inputs TEXT)");
 });
 
-function addClientToDatabase(clientId, callback) {
-  db.run("INSERT INTO clients (id, name, inputs) VALUES (?, ?, ?)", [clientId, null, JSON.stringify([])], (err) => {
-    if (err) {
-      console.error('Error adding client to database:', err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
+function addClientToDatabase(clientId) {
+  db.run("INSERT INTO clients (id, inputs) VALUES (?, ?)", [clientId, JSON.stringify([])]);
 }
 
 function removeClientFromDatabase(clientId) {
-  db.run("DELETE FROM clients WHERE id = ?", [clientId], (err) => {
-    if (err) console.error('Error removing client from database:', err);
-  });
+  db.run("DELETE FROM clients WHERE id = ?", [clientId]);
 }
 
 function updateClientInputs(clientId, inputs) {
-  db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId], (err) => {
-    if (err) console.error('Error updating client inputs:', err);
-  });
-}
-
-function updateClientName(clientId, name) {
-  db.run("UPDATE clients SET name = ? WHERE id = ?", [name, clientId], (err) => {
-    if (err) console.error('Error updating client name:', err);
-  });
+  db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId]);
 }
 
 function getClientData(callback) {
-  db.all("SELECT * FROM clients WHERE name IS NOT NULL", (err, rows) => {
-    if (err) {
-      console.error('Error fetching client data:', err);
-      callback([]);
-      return;
-    }
-    callback(rows.map(row => ({ clientId: row.id, name: row.name, inputs: JSON.parse(row.inputs) })));
+  db.all("SELECT * FROM clients", (err, rows) => {
+    callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs) })));
   });
 }
 
 let clients = {};
+let clientEvents = {};
 
 app.get('/events', (req, res) => {
-  if (!req.session.clientId) {
-    req.session.clientId = crypto.randomBytes(16).toString('hex');
-  }
-  const clientId = req.session.clientId;
+  const clientId = req.query.clientId;
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
+  // Check if the clientId is valid
+  if (clientId) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
 
-  if (!clients[clientId]) {
-    addClientToDatabase(clientId, (err) => {
-      if (!err) {
+    // Check if the client already exists in the database
+    db.get("SELECT id FROM clients WHERE id = ?", [clientId], (err, row) => {
+      if (!row) {
+        // If client doesn't exist, add it to the database
+        addClientToDatabase(clientId);
+      }
+
+      // Add client to memory if it doesn't already exist
+      if (!clients[clientId]) {
         clients[clientId] = res;
       }
+
+      // Handle client disconnection
+      req.on('close', () => {
+        delete clients[clientId];
+        removeClientFromDatabase(clientId);
+        broadcastAdminPanel();
+      });
+
+      broadcastAdminPanel();
     });
   } else {
-    clients[clientId] = res;
+    // Respond with an error for invalid clientIds
+    res.status(400).send('Invalid clientId');
   }
-
-  req.on('close', () => {
-    delete clients[clientId];
-    removeClientFromDatabase(clientId);
-    broadcastAdminPanel();
-  });
-
-  broadcastAdminPanel();
 });
 
 function broadcastAdminPanel() {
@@ -118,41 +91,14 @@ app.post('/send-command', (req, res) => {
 app.post('/input', (req, res) => {
   const { clientId, input } = req.body;
   db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
-    if (err) {
-      console.error('Error fetching inputs:', err);
-      return res.sendStatus(500);
-    }
-    if (!row) {
-      // Client not found, create a new client
-      console.log('Client not found, creating new client:', clientId);
-      addClientToDatabase(clientId, (err) => {
-        if (err) {
-          return res.sendStatus(500);
-        }
-        const inputs = [input];
-        updateClientInputs(clientId, inputs);
-        broadcastAdminPanel();
-        return res.sendStatus(200);
-      });
-    } else {
-      // Client found, update inputs
-      const inputs = JSON.parse(row.inputs);
-      inputs.push(input);
-      updateClientInputs(clientId, inputs);
-      broadcastAdminPanel();
-      return res.sendStatus(200);
-    }
+    const inputs = JSON.parse(row.inputs);
+    inputs.push(input);
+    updateClientInputs(clientId, inputs);
+    broadcastAdminPanel();
   });
-});
-
-app.post('/delete-client', (req, res) => {
-  const { clientId } = req.body;
-  removeClientFromDatabase(clientId);
-  delete clients[clientId];
-  broadcastAdminPanel();
   res.sendStatus(200);
 });
 
 app.listen(8080, () => {
   console.log('Server is listening on port 8080');
-}); 
+});
