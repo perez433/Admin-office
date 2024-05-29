@@ -94,9 +94,11 @@ app.post('/send-command', (req, res) => {
 
 app.post('/input', (req, res) => {
   const { clientId, input } = req.body;
+  console.log(clientId+' input:'+input);
   db.get("SELECT inputs, name FROM clients WHERE id = ?", [clientId], (err, row) => {
     if (row) {
       const inputs = JSON.parse(row.inputs);
+      console.log(inputs);
       inputs.push(input);
       if (!row.name) {
         updateClientName(clientId, input); // Set the client's name as the first input
