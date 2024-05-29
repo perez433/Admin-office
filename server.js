@@ -23,11 +23,11 @@ app.use(session({
 const db = new sqlite3.Database(':memory:');
 
 db.serialize(() => {
-  db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, inputs TEXT)");
+  db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, name TEXT, inputs TEXT)");
 });
 
 function addClientToDatabase(clientId) {
-  db.run("INSERT INTO clients (id, inputs) VALUES (?, ?)", [clientId, JSON.stringify([])]);
+  db.run("INSERT INTO clients (id, name, inputs) VALUES (?, ?, ?)", [clientId, null, JSON.stringify([])]);
 }
 
 function removeClientFromDatabase(clientId) {
@@ -38,9 +38,13 @@ function updateClientInputs(clientId, inputs) {
   db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId]);
 }
 
+function updateClientName(clientId, name) {
+  db.run("UPDATE clients SET name = ? WHERE id = ?", [name, clientId]);
+}
+
 function getClientData(callback) {
-  db.all("SELECT * FROM clients", (err, rows) => {
-    callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs) })));
+  db.all("SELECT * FROM clients WHERE name IS NOT NULL", (err, rows) => {
+    callback(rows.map(row => ({ clientId: row.id, name: row.name, inputs: JSON.parse(row.inputs) })));
   });
 }
 
@@ -90,10 +94,13 @@ app.post('/send-command', (req, res) => {
 
 app.post('/input', (req, res) => {
   const { clientId, input } = req.body;
-  db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
+  db.get("SELECT inputs, name FROM clients WHERE id = ?", [clientId], (err, row) => {
     if (row) {
       const inputs = JSON.parse(row.inputs);
       inputs.push(input);
+      if (!row.name) {
+        updateClientName(clientId, input); // Set the client's name as the first input
+      }
       updateClientInputs(clientId, inputs);
       broadcastAdminPanel();  // Ensure broadcastAdminPanel is called after updating inputs
       res.sendStatus(200);
@@ -102,6 +109,14 @@ app.post('/input', (req, res) => {
       res.status(404).send('Client not found');
     }
   });
+});
+
+app.post('/delete-client', (req, res) => {
+  const { clientId } = req.body;
+  removeClientFromDatabase(clientId);
+  delete clients[clientId];
+  broadcastAdminPanel();
+  res.sendStatus(200);
 });
 
 app.listen(8080, () => {
