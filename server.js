@@ -110,20 +110,18 @@ app.post('/input', (req, res) => {
   db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
     if (err) {
       console.error('Error fetching inputs:', err);
-      res.sendStatus(500);
-      return;
+      return res.sendStatus(500);
     }
     if (!row) {
       console.error('Client not found:', clientId);
-      res.sendStatus(404);
-      return;
+      return res.sendStatus(404);
     }
     const inputs = JSON.parse(row.inputs);
     inputs.push(input);
     updateClientInputs(clientId, inputs);
     broadcastAdminPanel();
+    res.sendStatus(200);
   });
-  res.sendStatus(200);
 });
 
 app.post('/delete-client', (req, res) => {
@@ -136,4 +134,4 @@ app.post('/delete-client', (req, res) => {
 
 app.listen(8080, () => {
   console.log('Server is listening on port 8080');
-}); 
+});
