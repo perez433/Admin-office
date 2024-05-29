@@ -1,10 +1,19 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
+const session = require('express-session');
 
 const app = express();
 app.use(express.static('public'));
 app.use(bodyParser.json());
+
+// Set up session middleware
+app.use(session({
+  secret: 'your-secret-key',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { maxAge: 60000 } // Adjust the session duration as needed
+}));
 
 // Initialize SQLite database
 const db = new sqlite3.Database(':memory:');
@@ -32,10 +41,13 @@ function getClientData(callback) {
 }
 
 let clients = {};
-let clientEvents = {};
 
 app.get('/events', (req, res) => {
-  const clientId = req.query.clientId;
+  if (!req.session.clientId) {
+    req.session.clientId = Date.now().toString();
+  }
+  const clientId = req.session.clientId;
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
