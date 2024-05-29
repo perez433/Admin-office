@@ -10,8 +10,6 @@
   <button onclick="sendInput()">Submit</button>
 
   <script>
-    import WebSocket from 'isomorphic-ws';
-
     const socket = new WebSocket('ws://localhost:8080');
 
     socket.onopen = () => {
