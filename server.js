@@ -8,7 +8,7 @@ const app = express();
 app.use(express.static('public'));
 app.use(bodyParser.json());
 
-// Generate a strong secret key
+// Generate a strong secret key and consider storing it securely
 const secretKey = crypto.randomBytes(64).toString('hex');
 
 // Set up session middleware with the secret key
@@ -27,23 +27,36 @@ db.serialize(() => {
 });
 
 function addClientToDatabase(clientId) {
-  db.run("INSERT INTO clients (id, name, inputs) VALUES (?, ?, ?)", [clientId, null, JSON.stringify([])]);
+  db.run("INSERT INTO clients (id, name, inputs) VALUES (?, ?, ?)", [clientId, null, JSON.stringify([])], (err) => {
+    if (err) console.error('Error adding client to database:', err);
+  });
 }
 
 function removeClientFromDatabase(clientId) {
-  db.run("DELETE FROM clients WHERE id = ?", [clientId]);
+  db.run("DELETE FROM clients WHERE id = ?", [clientId], (err) => {
+    if (err) console.error('Error removing client from database:', err);
+  });
 }
 
 function updateClientInputs(clientId, inputs) {
-  db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId]);
+  db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId], (err) => {
+    if (err) console.error('Error updating client inputs:', err);
+  });
 }
 
 function updateClientName(clientId, name) {
-  db.run("UPDATE clients SET name = ? WHERE id = ?", [name, clientId]);
+  db.run("UPDATE clients SET name = ? WHERE id = ?", [name, clientId], (err) => {
+    if (err) console.error('Error updating client name:', err);
+  });
 }
 
 function getClientData(callback) {
   db.all("SELECT * FROM clients WHERE name IS NOT NULL", (err, rows) => {
+    if (err) {
+      console.error('Error fetching client data:', err);
+      callback([]);
+      return;
+    }
     callback(rows.map(row => ({ clientId: row.id, name: row.name, inputs: JSON.parse(row.inputs) })));
   });
 }
@@ -52,7 +65,7 @@ let clients = {};
 
 app.get('/events', (req, res) => {
   if (!req.session.clientId) {
-    req.session.clientId = Date.now().toString();
+    req.session.clientId = crypto.randomBytes(16).toString('hex');
   }
   const clientId = req.session.clientId;
 
@@ -95,6 +108,11 @@ app.post('/send-command', (req, res) => {
 app.post('/input', (req, res) => {
   const { clientId, input } = req.body;
   db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
+    if (err) {
+      console.error('Error fetching inputs:', err);
+      res.sendStatus(500);
+      return;
+    }
     const inputs = JSON.parse(row.inputs);
     inputs.push(input);
     updateClientInputs(clientId, inputs);
