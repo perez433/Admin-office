@@ -113,6 +113,11 @@ app.post('/input', (req, res) => {
       res.sendStatus(500);
       return;
     }
+    if (!row) {
+      console.error('Client not found:', clientId);
+      res.sendStatus(404);
+      return;
+    }
     const inputs = JSON.parse(row.inputs);
     inputs.push(input);
     updateClientInputs(clientId, inputs);
