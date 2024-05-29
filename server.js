@@ -2,17 +2,21 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 const session = require('express-session');
+const crypto = require('crypto');
 
 const app = express();
 app.use(express.static('public'));
 app.use(bodyParser.json());
 
-// Set up session middleware
+// Generate a strong secret key
+const secretKey = crypto.randomBytes(64).toString('hex');
+
+// Set up session middleware with the secret key
 app.use(session({
-  secret: 'your-secret-key',
+  secret: secretKey, // Use the generated secret key
   resave: false,
   saveUninitialized: true,
-  cookie: { maxAge: 60000 } // Adjust the session duration as needed
+  cookie: { maxAge: 60000 } // Session duration in milliseconds
 }));
 
 // Initialize SQLite database
@@ -87,12 +91,17 @@ app.post('/send-command', (req, res) => {
 app.post('/input', (req, res) => {
   const { clientId, input } = req.body;
   db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
-    const inputs = JSON.parse(row.inputs);
-    inputs.push(input);
-    updateClientInputs(clientId, inputs);
-    broadcastAdminPanel();
+    if (row) {
+      const inputs = JSON.parse(row.inputs);
+      inputs.push(input);
+      updateClientInputs(clientId, inputs);
+      broadcastAdminPanel();  // Ensure broadcastAdminPanel is called after updating inputs
+      res.sendStatus(200);
+    } else {
+      console.error(`Client with ID ${clientId} not found`);
+      res.status(404).send('Client not found');
+    }
   });
-  res.sendStatus(200);
 });
 
 app.listen(8080, () => {
