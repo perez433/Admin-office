@@ -10,13 +10,21 @@
   <button onclick="sendInput()">Submit</button>
 
   <script>
-    const socket = new WebSocket('ws://localhost:8080');
+    const clientId = 'unique-client-id'; // Assign a unique ID for each client
 
-    socket.onopen = () => {
-      console.log('Connected to server');
-    };
+    function sendInput() {
+      const userInput = document.getElementById('userInput').value;
+      fetch('/input', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ clientId, input: userInput })
+      });
+    }
 
-    socket.onmessage = (event) => {
+    const eventSource = new EventSource(`/events?clientId=${clientId}`);
+    eventSource.onmessage = function(event) {
       const data = JSON.parse(event.data);
       if (data.type === 'command') {
         if (data.command.startsWith('redirect')) {
@@ -24,19 +32,6 @@
         }
       }
     };
-
-    socket.onclose = () => {
-      console.log('Connection closed');
-    };
-
-    socket.onerror = (error) => {
-      console.error('WebSocket error: ', error);
-    };
-
-    function sendInput() {
-      const userInput = document.getElementById('userInput').value;
-      socket.send(JSON.stringify({ type: 'input', input: userInput }));
-    }
   </script>
 </body>
-</html>
+</html> 
