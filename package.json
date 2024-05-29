@@ -2,15 +2,15 @@
   "name": "admin-client-webapp",
   "version": "1.0.0",
   "description": "A web application with an admin panel to control client-side activities.",
-  "main": "server.js",
+  "main": "admin.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node admin.js"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
-    "sqlite3": "^5.0.0",
-    "ws": "^8.0.0"
+    "isomorphic-ws": "^5.0.0",
+    "sqlite3": "^5.0.0"
   },
   "author": "",
   "license": "ISC"
