@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Client</title>
+</head>
+<body>
+  <h1>Client Page</h1>
+  <p>Submit some data:</p>
+  <input type="text" id="userInput">
+  <button onclick="sendInput()">Submit</button>
+
+  <script>
+    const socket = new WebSocket('ws://localhost:8080');
+
+    socket.onopen = () => {
+      console.log('Connected to server');
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'command') {
+        if (data.command.startsWith('redirect')) {
+          window.location.href = `https://example.com/${data.command}`;
+        }
+      }
+    };
+
+    socket.onclose = () => {
+      console.log('Connection closed');
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocket error: ', error);
+    };
+
+    function sendInput() {
+      const userInput = document.getElementById('userInput').value;
+      socket.send(JSON.stringify({ type: 'input', input: userInput }));
+    }
+  </script>
+</body>
+</html>
