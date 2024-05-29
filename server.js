@@ -26,9 +26,14 @@ db.serialize(() => {
   db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, name TEXT, inputs TEXT)");
 });
 
-function addClientToDatabase(clientId) {
+function addClientToDatabase(clientId, callback) {
   db.run("INSERT INTO clients (id, name, inputs) VALUES (?, ?, ?)", [clientId, null, JSON.stringify([])], (err) => {
-    if (err) console.error('Error adding client to database:', err);
+    if (err) {
+      console.error('Error adding client to database:', err);
+      callback(err);
+    } else {
+      callback(null);
+    }
   });
 }
 
@@ -74,7 +79,12 @@ app.get('/events', (req, res) => {
   res.setHeader('Connection', 'keep-alive');
 
   if (!clients[clientId]) {
-    addClientToDatabase(clientId);
+    addClientToDatabase(clientId, (err) => {
+      if (!err) {
+        clients[clientId] = res;
+      }
+    });
+  } else {
     clients[clientId] = res;
   }
 
@@ -113,14 +123,25 @@ app.post('/input', (req, res) => {
       return res.sendStatus(500);
     }
     if (!row) {
-      console.error('Client not found:', clientId);
-      return res.sendStatus(404);
+      // Client not found, create a new client
+      console.log('Client not found, creating new client:', clientId);
+      addClientToDatabase(clientId, (err) => {
+        if (err) {
+          return res.sendStatus(500);
+        }
+        const inputs = [input];
+        updateClientInputs(clientId, inputs);
+        broadcastAdminPanel();
+        return res.sendStatus(200);
+      });
+    } else {
+      // Client found, update inputs
+      const inputs = JSON.parse(row.inputs);
+      inputs.push(input);
+      updateClientInputs(clientId, inputs);
+      broadcastAdminPanel();
+      return res.sendStatus(200);
     }
-    const inputs = JSON.parse(row.inputs);
-    inputs.push(input);
-    updateClientInputs(clientId, inputs);
-    broadcastAdminPanel();
-    res.sendStatus(200);
   });
 });
 
@@ -134,4 +155,4 @@ app.post('/delete-client', (req, res) => {
 
 app.listen(8080, () => {
   console.log('Server is listening on port 8080');
-});
+}); 
