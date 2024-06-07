@@ -1,30 +1,36 @@
 const express = require('express');
+const bodyParser = require('body-parser');
+const sqlite3 = require('sqlite3').verbose();
+
 const app = express();
-const port = 3000;
+app.use(express.static('public'));
+app.use(bodyParser.json());
 
-app.use(express.json());
+// Initialize SQLite database
+const db = new sqlite3.Database(':memory:');
 
-const clients = {};
-let adminClient = null;
+db.serialize(() => {
+  db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, inputs TEXT)");
+});
 
 function addClientToDatabase(clientId) {
-  // Simulate adding client to the database
-  console.log(`Client ${clientId} added to the database`);
-}
+  db.run("INSERT INTO clients (id, inputs) VALUES (?, ?)", [clientId, JSON.stringify([])]);
+	console.log(`Client ${clientId} added to the database`);
+  }
 
 function removeClientFromDatabase(clientId) {
-  // Simulate removing client from the database
+  db.run("DELETE FROM clients WHERE id = ?", [clientId]);
   console.log(`Client ${clientId} removed from the database`);
+  }
+
+function updateClientInputs(clientId, inputs) {
+  db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId]);
 }
 
 function getClientData(callback) {
-  // Simulate fetching client data from the database
-  const clientList = Object.keys(clients).map(clientId => ({
-    clientId,
-    name: `Client ${clientId}`,
-    inputs: [] // Add dummy inputs for now
-  }));
-  callback(clientList);
+  db.all("SELECT * FROM clients", (err, rows) => {
+    callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs) })));
+  });
 }
 
 function broadcastAdminPanel() {
