@@ -46,6 +46,7 @@ app.get('/events', (req, res) => {
   console.log(`Received /events request: clientId=${clientId}, isAdmin=${isAdmin}`);
 
   if (clientId || isAdmin) {
+  	console.log('isAdmin pass');
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -76,6 +77,7 @@ app.get('/events', (req, res) => {
 
     broadcastAdminPanel();
   } else {
+  	console.log('is Admin failed);
     res.status(400).send('Invalid clientId or admin query parameter');
   }
 });
