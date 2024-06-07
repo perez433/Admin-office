@@ -37,7 +37,7 @@
           <button onclick="deleteClient('${client.clientId}')">Delete</button>
           <div id="inputs-${client.clientId}" class="inputs">
             <h4>Inputs:</h4>
-            ${client.inputs.map(input => `<p>${input}</p>`).join('')}
+            ${client.inputs.map(input => `<p>${input.label}: ${input.value}</p>`).join('')}
           </div>
         `;
         clientsDiv.appendChild(clientDiv);
@@ -83,7 +83,7 @@
       }
     }
 
-    const eventSource = new EventSource('/events');
+    const eventSource = new EventSource('/events?admin=true');
     eventSource.onmessage = function(event) {
       const data = JSON.parse(event.data);
       if (data.type === 'adminUpdate') {
