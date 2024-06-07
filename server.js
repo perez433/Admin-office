@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
+const port = 3000; // Define the port
+
 app.use(express.static('public'));
 app.use(bodyParser.json());
 
@@ -13,23 +15,45 @@ db.serialize(() => {
   db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, inputs TEXT)");
 });
 
+const clients = {}; // Initialize the clients object
+let adminClient = null; // Initialize the admin client
+
 function addClientToDatabase(clientId) {
-  db.run("INSERT INTO clients (id, inputs) VALUES (?, ?)", [clientId, JSON.stringify([])]);
-	console.log(`Client ${clientId} added to the database`);
-  }
+  db.run("INSERT INTO clients (id, inputs) VALUES (?, ?)", [clientId, JSON.stringify([])], (err) => {
+    if (err) {
+      console.error(`Error adding client ${clientId}: ${err.message}`);
+    } else {
+      console.log(`Client ${clientId} added to the database`);
+    }
+  });
+}
 
 function removeClientFromDatabase(clientId) {
-  db.run("DELETE FROM clients WHERE id = ?", [clientId]);
-  console.log(`Client ${clientId} removed from the database`);
-  }
+  db.run("DELETE FROM clients WHERE id = ?", [clientId], (err) => {
+    if (err) {
+      console.error(`Error removing client ${clientId}: ${err.message}`);
+    } else {
+      console.log(`Client ${clientId} removed from the database`);
+    }
+  });
+}
 
 function updateClientInputs(clientId, inputs) {
-  db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId]);
+  db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId], (err) => {
+    if (err) {
+      console.error(`Error updating inputs for client ${clientId}: ${err.message}`);
+    }
+  });
 }
 
 function getClientData(callback) {
   db.all("SELECT * FROM clients", (err, rows) => {
-    callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs) })));
+    if (err) {
+      console.error(`Error retrieving client data: ${err.message}`);
+      callback([]);
+    } else {
+      callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs) })));
+    }
   });
 }
 
@@ -52,7 +76,6 @@ app.get('/events', (req, res) => {
   console.log(`Received /events request: clientId=${clientId}, isAdmin=${isAdmin}`);
 
   if (clientId || isAdmin) {
-  	console.log('isAdmin pass');
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -83,7 +106,6 @@ app.get('/events', (req, res) => {
 
     broadcastAdminPanel();
   } else {
-  	console.log('is Admin failed');
     res.status(400).send('Invalid clientId or admin query parameter');
   }
 });
@@ -105,6 +127,10 @@ app.post('/input', (req, res) => {
 
     // Update client inputs in the database
     db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
+      if (err) {
+        console.error(`Error retrieving inputs for client ${clientId}: ${err.message}`);
+        return res.sendStatus(500);
+      }
       const inputs = JSON.parse(row.inputs);
       inputs.push({ label: inputName, value: inputValue });
       updateClientInputs(clientId, inputs);
