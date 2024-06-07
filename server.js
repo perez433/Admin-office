@@ -1,44 +1,51 @@
 const express = require('express');
-const bodyParser = require('body-parser');
-const sqlite3 = require('sqlite3').verbose();
-
 const app = express();
-app.use(express.static('public'));
-app.use(bodyParser.json());
+const port = 3000;
 
-// Initialize SQLite database
-const db = new sqlite3.Database(':memory:');
+app.use(express.json());
 
-db.serialize(() => {
-  db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, inputs TEXT)");
-});
+const clients = {};
+let adminClient = null;
 
 function addClientToDatabase(clientId) {
-  db.run("INSERT INTO clients (id, inputs) VALUES (?, ?)", [clientId, JSON.stringify([])]);
+  // Simulate adding client to the database
+  console.log(`Client ${clientId} added to the database`);
 }
 
 function removeClientFromDatabase(clientId) {
-  db.run("DELETE FROM clients WHERE id = ?", [clientId]);
-}
-
-function updateClientInputs(clientId, inputs) {
-  db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId]);
+  // Simulate removing client from the database
+  console.log(`Client ${clientId} removed from the database`);
 }
 
 function getClientData(callback) {
-  db.all("SELECT * FROM clients", (err, rows) => {
-    callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs) })));
+  // Simulate fetching client data from the database
+  const clientList = Object.keys(clients).map(clientId => ({
+    clientId,
+    name: `Client ${clientId}`,
+    inputs: [] // Add dummy inputs for now
+  }));
+  callback(clientList);
+}
+
+function broadcastAdminPanel() {
+  getClientData((clientList) => {
+    const message = JSON.stringify({ type: 'adminUpdate', clientList });
+    console.log(`Broadcasting to admin panel: ${message}`);
+    if (adminClient) {
+      adminClient.write(`data: ${message}\n\n`);
+    } else {
+      console.log('No admin client connected');
+    }
   });
 }
 
-let clients = {};
-let clientEvents = {};
-
 app.get('/events', (req, res) => {
   const clientId = req.query.clientId;
+  const isAdmin = req.query.admin === 'true';
 
-  // Check if the clientId is valid
-  if (clientId || req.headers['user-agent'].includes('admin_panel')) {
+  console.log(`Received /events request: clientId=${clientId}, isAdmin=${isAdmin}`);
+
+  if (clientId || isAdmin) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -46,76 +53,45 @@ app.get('/events', (req, res) => {
     if (clientId && !clients[clientId]) {
       addClientToDatabase(clientId);
       clients[clientId] = res;
+      console.log(`Client ${clientId} connected`);
+    }
+
+    if (isAdmin) {
+      adminClient = res;
+      console.log('Admin client connected');
     }
 
     req.on('close', () => {
       if (clientId) {
-        // Delete client on connection close
         delete clients[clientId];
         removeClientFromDatabase(clientId);
+        console.log(`Client ${clientId} disconnected`);
+      }
+      if (isAdmin) {
+        adminClient = null;
+        console.log('Admin client disconnected');
       }
       broadcastAdminPanel();
     });
 
     broadcastAdminPanel();
   } else {
-    // Respond with an error for invalid clientIds
-    res.status(400).send('Invalid clientId');
+    res.status(400).send('Invalid clientId or admin query parameter');
   }
-});
-
-
-
-app.post('/delete-client', (req, res) => {
-  const { clientId } = req.body;
-  if (clientId) {
-    // Remove the client from memory and database
-    if (clients[clientId]) {
-      clients[clientId].end(); // End the SSE connection
-      delete clients[clientId];
-    }
-    removeClientFromDatabase(clientId);
-    broadcastAdminPanel();
-    res.sendStatus(200);
-  } else {
-    res.status(400).send('Missing clientId');
-  }
-});
-
-function broadcastAdminPanel() {
-  getClientData((clientList) => {
-    const message = JSON.stringify({ type: 'adminUpdate', clientList });
-    Object.values(clients).forEach(client => {
-      client.write(`data: ${message}\n\n`);
-      console.log(message);
-    });
-  });
-}
-
-app.post('/send-command', (req, res) => {
-  const { clientId, command } = req.body;
-  const client = clients[clientId];
-  if (client) {
-    client.write(`data: ${JSON.stringify({ type: 'command', command })}\n\n`);
-  }
-  res.sendStatus(200);
 });
 
 app.post('/input', (req, res) => {
   const { clientId, inputName, inputValue } = req.body;
-  
-  console.log(req.body);
+
+  console.log('Received /input request:', req.body);
 
   if (!clientId || !inputName || !inputValue) {
     return res.status(400).send('Missing clientId, inputName, or inputValue');
   }
-  
-  
 
   // Check if the client already exists in the database
   db.get("SELECT id FROM clients WHERE id = ?", [clientId], (err, row) => {
     if (!row) {
-      // If client doesn't exist, add it to the database
       addClientToDatabase(clientId);
     }
 
@@ -131,6 +107,6 @@ app.post('/input', (req, res) => {
   res.sendStatus(200);
 });
 
-app.listen(8080, () => {
-  console.log('Server is listening on port 8080');
-});
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}/`);
+}); 
