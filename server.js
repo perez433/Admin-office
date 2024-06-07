@@ -49,6 +49,7 @@ app.get('/events', (req, res) => {
     }
 
     req.on('close', () => {
+    	//delete client on connection close
       delete clients[clientId];
       removeClientFromDatabase(clientId);
       broadcastAdminPanel();
@@ -96,10 +97,12 @@ app.post('/send-command', (req, res) => {
 });
 
 app.post('/input', (req, res) => {
-  const { clientId, input } = req.body;
+  const { clientId, inputName, inputValue } = req.body;
+  
+  console.log(req.body);
 
-  if (!clientId) {
-    return res.status(400).send('Missing clientId');
+  if (!clientId || !inputName || !inputValue) {
+    return res.status(400).send('Missing clientId, inputName, or inputValue');
   }
 
   // Check if the client already exists in the database
@@ -112,7 +115,7 @@ app.post('/input', (req, res) => {
     // Update client inputs in the database
     db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
       const inputs = JSON.parse(row.inputs);
-      inputs.push(input);
+      inputs.push({ label: inputName, value: inputValue });
       updateClientInputs(clientId, inputs);
       broadcastAdminPanel();
     });
