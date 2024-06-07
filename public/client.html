@@ -23,17 +23,19 @@
     const clientId = getClientId();
 
     function sendInput() {
-      const userInput = document.getElementById('userInput').value;
-      const inputName = userInput.name;
-      console.log(userInput);
-      fetch('/input', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ clientId, inputValue: userInput, inputName: inputName })
-      });
-    }
+  const inputValue = document.getElementById('userInput').value;
+  const inputName = document.getElementById('userInput').name;
+  const data = JSON.stringify({ clientId, inputValue, inputName });
+  console.log(data);
+  fetch('/input', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: data
+  });
+}
+
 
     const eventSource = new EventSource(`/events?clientId=${clientId}`);
     eventSource.onmessage = function(event) {
@@ -45,5 +47,5 @@
       }
     };
   </script>
-</body> 
+</body>
 </html>
