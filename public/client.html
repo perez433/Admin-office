@@ -46,6 +46,10 @@
         }
       }
     };
+    
+    eventSource.onerror = function(error) {
+      console.error('EventSource failed:', error);
+    };
   </script>
 </body>
 </html>
