@@ -77,7 +77,7 @@ app.get('/events', (req, res) => {
 
     broadcastAdminPanel();
   } else {
-  	console.log('is Admin failed);
+  	console.log('is Admin failed');
     res.status(400).send('Invalid clientId or admin query parameter');
   }
 });
