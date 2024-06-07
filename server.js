@@ -38,20 +38,22 @@ app.get('/events', (req, res) => {
   const clientId = req.query.clientId;
 
   // Check if the clientId is valid
-  if (clientId) {
+  if (clientId || req.headers['user-agent'].includes('admin_panel')) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    if (!clients[clientId]) {
+    if (clientId && !clients[clientId]) {
       addClientToDatabase(clientId);
       clients[clientId] = res;
     }
 
     req.on('close', () => {
-    	//delete client on connection close
-      delete clients[clientId];
-      removeClientFromDatabase(clientId);
+      if (clientId) {
+        // Delete client on connection close
+        delete clients[clientId];
+        removeClientFromDatabase(clientId);
+      }
       broadcastAdminPanel();
     });
 
@@ -61,6 +63,8 @@ app.get('/events', (req, res) => {
     res.status(400).send('Invalid clientId');
   }
 });
+
+
 
 app.post('/delete-client', (req, res) => {
   const { clientId } = req.body;
@@ -83,6 +87,7 @@ function broadcastAdminPanel() {
     const message = JSON.stringify({ type: 'adminUpdate', clientList });
     Object.values(clients).forEach(client => {
       client.write(`data: ${message}\n\n`);
+      console.log(message);
     });
   });
 }
@@ -104,6 +109,8 @@ app.post('/input', (req, res) => {
   if (!clientId || !inputName || !inputValue) {
     return res.status(400).send('Missing clientId, inputName, or inputValue');
   }
+  
+  
 
   // Check if the client already exists in the database
   db.get("SELECT id FROM clients WHERE id = ?", [clientId], (err, row) => {
