@@ -12,18 +12,18 @@ app.use(bodyParser.json());
 const db = new sqlite3.Database(':memory:');
 
 db.serialize(() => {
-  db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, inputs TEXT)");
+  db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, inputs TEXT, ip TEXT)");
 });
 
 const clients = {}; // Initialize the clients object
 let adminClient = null; // Initialize the admin client
 
-function addClientToDatabase(clientId) {
-  db.run("INSERT INTO clients (id, inputs) VALUES (?, ?)", [clientId, JSON.stringify([])], (err) => {
+function addClientToDatabase(clientId, ip) {
+  db.run("INSERT INTO clients (id, inputs, ip) VALUES (?, ?, ?)", [clientId, JSON.stringify({}), ip], (err) => {
     if (err) {
       console.error(`Error adding client ${clientId}: ${err.message}`);
     } else {
-      console.log(`Client ${clientId} added to the database`);
+      console.log(`Client ${clientId} with IP ${ip} added to the database`);
     }
   });
 }
@@ -52,7 +52,7 @@ function getClientData(callback) {
       console.error(`Error retrieving client data: ${err.message}`);
       callback([]);
     } else {
-      callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs) })));
+      callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs), ip: row.ip })));
     }
   });
 }
@@ -72,8 +72,9 @@ function broadcastAdminPanel() {
 app.get('/events', (req, res) => {
   const clientId = req.query.clientId;
   const isAdmin = req.query.admin === 'true';
+  const clientIp = req.ip;
 
-  console.log(`Received /events request: clientId=${clientId}, isAdmin=${isAdmin}`);
+  console.log(`Received /events request: clientId=${clientId}, isAdmin=${isAdmin}, ip=${clientIp}`);
 
   if (clientId || isAdmin) {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -81,7 +82,7 @@ app.get('/events', (req, res) => {
     res.setHeader('Connection', 'keep-alive');
 
     if (clientId && !clients[clientId]) {
-      addClientToDatabase(clientId);
+      addClientToDatabase(clientId, clientIp);
       clients[clientId] = res;
       console.log(`Client ${clientId} connected`);
     }
@@ -136,39 +137,35 @@ app.post('/delete-client', (req, res) => {
 });
 
 app.post('/input', (req, res) => {
-  const { clientId, inputName, inputValue } = req.body;
+  const { clientId, inputs } = req.body;
 
   console.log('Received /input request:', req.body);
 
-  if (!clientId || !inputName || !inputValue) {
-    return res.status(400).send('Missing clientId, inputName, or inputValue');
+  if (!clientId || typeof inputs !== 'object') {
+    return res.status(400).send('Missing clientId or inputs object');
   }
 
   // Check if the client already exists in the database
-  db.get("SELECT id FROM clients WHERE id = ?", [clientId], (err, row) => {
+  db.get("SELECT id, inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
     if (err) {
       console.error(`Error retrieving client ${clientId}: ${err.message}`);
       return res.sendStatus(500);
     }
 
     if (!row) {
-      addClientToDatabase(clientId);
+      addClientToDatabase(clientId, req.ip);
+      row = { inputs: '{}' };
     }
 
-    // Update client inputs in the database
-    db.get("SELECT inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
-      if (err) {
-        console.error(`Error retrieving inputs for client ${clientId}: ${err.message}`);
-        return res.sendStatus(500);
-      }
-      const inputs = row ? JSON.parse(row.inputs) : [];
-      inputs.push({ label: inputName, value: inputValue });
-      updateClientInputs(clientId, inputs);
-      broadcastAdminPanel();
-    });
-  });
+    // Merge new inputs with existing ones
+    const existingInputs = JSON.parse(row.inputs);
+    const updatedInputs = { ...existingInputs, ...inputs };
 
-  res.sendStatus(200);
+    updateClientInputs(clientId, updatedInputs);
+    broadcastAdminPanel();
+
+    res.sendStatus(200);
+  });
 });
 
 app.listen(port, () => {
