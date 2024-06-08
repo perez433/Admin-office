@@ -225,7 +225,7 @@ app.post('/delete-client', (req, res) => {
   }
 });
 
-app.post('/input', (req, res) => {
+app.post('/input', async (req, res) => { // Mark the route handler as async
   const { clientId, inputs } = req.body;
 
   console.log('Received /input request:', req.body);
