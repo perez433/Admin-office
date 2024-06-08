@@ -110,6 +110,41 @@ app.get('/events', (req, res) => {
   }
 });
 
+app.post('/send-command', (req, res) => {
+  const { clientId, command } = req.body;
+  const client = clients[clientId];
+  if (client) {
+    client.write(`data: ${JSON.stringify({ type: 'command', command })}\n\n`);
+  }
+  res.sendStatus(200);
+});
+
+app.post('/delete-client', (req, res) => {
+  const { clientId } = req.body;
+  if (clientId) {
+    // Remove the client from memory and database
+    if (clients[clientId]) {
+      clients[clientId].end(); // End the SSE connection
+      delete clients[clientId];
+    }
+    removeClientFromDatabase(clientId);
+    broadcastAdminPanel();
+    res.sendStatus(200);
+  } else {
+    res.status(400).send('Missing clientId');
+  }
+});
+
+
+app.post('/input', (req, res) => {
+  const { clientId, inputName, inputValue } = req.body;
+  
+  console.log(req.body);
+
+  if (!clientId || !inputName || !inputValue) {
+    return res.status(400).send('Missing clientId, inputName, or inputValue');
+  }
+
 app.post('/input', (req, res) => {
   const { clientId, inputName, inputValue } = req.body;
 
