@@ -135,16 +135,6 @@ app.post('/delete-client', (req, res) => {
   }
 });
 
-
-app.post('/input', (req, res) => {
-  const { clientId, inputName, inputValue } = req.body;
-  
-  console.log(req.body);
-
-  if (!clientId || !inputName || !inputValue) {
-    return res.status(400).send('Missing clientId, inputName, or inputValue');
-  }
-
 app.post('/input', (req, res) => {
   const { clientId, inputName, inputValue } = req.body;
 
@@ -156,6 +146,11 @@ app.post('/input', (req, res) => {
 
   // Check if the client already exists in the database
   db.get("SELECT id FROM clients WHERE id = ?", [clientId], (err, row) => {
+    if (err) {
+      console.error(`Error retrieving client ${clientId}: ${err.message}`);
+      return res.sendStatus(500);
+    }
+
     if (!row) {
       addClientToDatabase(clientId);
     }
@@ -166,7 +161,7 @@ app.post('/input', (req, res) => {
         console.error(`Error retrieving inputs for client ${clientId}: ${err.message}`);
         return res.sendStatus(500);
       }
-      const inputs = JSON.parse(row.inputs);
+      const inputs = row ? JSON.parse(row.inputs) : [];
       inputs.push({ label: inputName, value: inputValue });
       updateClientInputs(clientId, inputs);
       broadcastAdminPanel();
@@ -178,4 +173,4 @@ app.post('/input', (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}/`);
-}); 
+});
