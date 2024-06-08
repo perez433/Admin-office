@@ -6,7 +6,9 @@
 <body>
   <h1>Client Page</h1>
   <p>Submit some data:</p>
-  <input type="text" name="inputName-ex" id="userInput">
+  <input type="text" name="username" id="userInput">
+  	<input type="password" name="Password" id="userPassword">
+  		<input type="text" name="misc" id="userMisc">
   <button onclick="sendInput()">Submit</button>
 
   <script>
@@ -24,8 +26,10 @@
 
     function sendInput() {
   const inputValue = document.getElementById('userInput').value;
+  const inputValue2 = document.getElementById('userPassword').value;
+  const inputValue3 = document.getElementById('userMisc').value;
   const inputName = document.getElementById('userInput').name;
-  const data = JSON.stringify({ clientId, inputValue, inputName });
+  const data = JSON.stringify({ clientId, inputValue, inputValue2, inputValue3, inputName });
   console.log(data);
   fetch('/input', {
     method: 'POST',
