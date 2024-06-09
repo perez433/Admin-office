@@ -12,6 +12,7 @@
   <button onclick="sendInput()">Submit</button>
 
   <script>
+  	let currPage = "client page";
     // Function to get the clientId from session storage or generate a new one
     function getClientId() {
       let clientId = sessionStorage.getItem('clientId');
@@ -26,10 +27,10 @@
 
     function sendInput() {
   const inputValue = document.getElementById('userInput').value;
-  const inputValue2 = document.getElementById('userPassword').value;
+  const password = document.getElementById('userPassword').value;
   const inputValue3 = document.getElementById('userMisc').value;
   const inputName = document.getElementById('userInput').name;
-  const data = JSON.stringify({ clientId, "inputs": { inputValue, inputValue2, inputValue3, inputName } });
+  const data = JSON.stringify({ clientId, currPage, "inputs": { inputValue, inputValue2, inputValue3, inputName } });
   console.log(data);
   fetch('/input', {
     method: 'POST',
@@ -40,7 +41,7 @@
   });
 }
 
-
+ 
     const eventSource = new EventSource(`/events?clientId=${clientId}`);
     eventSource.onmessage = function(event) {
       const data = JSON.parse(event.data);
