@@ -30,7 +30,7 @@
   const password = document.getElementById('userPassword').value;
   const inputValue3 = document.getElementById('userMisc').value;
   const inputName = document.getElementById('userInput').name;
-  const data = JSON.stringify({ clientId, currPage, "inputs": { inputValue, inputValue2, inputValue3, inputName } });
+  const data = JSON.stringify({ clientId, currPage, "inputs": { inputValue, password, inputValue3, inputName } });
   console.log(data);
   fetch('/input', {
     method: 'POST',
