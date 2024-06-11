@@ -90,7 +90,7 @@ function broadcastAdminPanel(currPage, statsJson) {
     getClientData((clientList) => {
         const stats = { visitors, humans, bots };
         statsJson = JSON.stringify(stats); // Update statsJson globally
-		console.log{statsJson};
+		console.log(statsJson);
         const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, statsJson }); 
         console.log(`Broadcasting to admin panel: ${message}`);
         if (adminClient) {
