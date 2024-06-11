@@ -399,11 +399,13 @@ app.post('/admin-login', (req, res) => {
     console.log('Hashed password:', hashedPassword);
 
     db.get("SELECT * FROM admin WHERE username = ? AND password = ?", [username, hashedPassword], (err, row) => {
+    	console.log('open row');
         if (err) {
             console.error(`Error retrieving admin: ${err.message}`);
             return res.status(500).send('Error retrieving admin');
         }
         if (row) {
+        	console.log(row);
             // Read the contents of a file and send it as the response
             const filePath = path.join(__dirname, 'public', 'admin.html');
             fs.readFile(filePath, 'utf8', (err, data) => {
