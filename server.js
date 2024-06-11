@@ -28,7 +28,7 @@ let visitors = 0;
 let humans = 0;
 let bots = 0;
 let stats = '';
-
+let clients = {};
 
 function resetVisits(){
     visitors = 0;
