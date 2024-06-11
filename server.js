@@ -29,8 +29,10 @@ const defaultPassword = 'updateteam'; // Remember to hash passwords for security
 const hashedPassword = crypto.createHash('sha256').update(defaultPassword).digest('hex');
 
 db.serialize(() => {
-    db.run("CREATE TABLE IF NOT EXISTS admin (username TEXT PRIMARY KEY, password TEXT)");
-
+    db.run("CREATE TABLE IF NOT EXISTS clients (id TEXT PRIMARY KEY, inputs TEXT, ip TEXT)");
+  db.run("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, stats TEXT)");
+  db.run("CREATE TABLE IF NOT EXISTS admin (username TEXT PRIMARY KEY, password TEXT)");
+  
     db.get("SELECT * FROM admin WHERE username = ?", [defaultUsername], (err, row) => {
         if (err) {
             console.error(`Error checking admin: ${err.message}`);
