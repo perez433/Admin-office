@@ -66,7 +66,7 @@ function getClientData(callback) {
   });
 }
 
-function broadcastAdminPanel(currPage = 'defaultPage') {
+function broadcastAdminPanel(currPage) {
   getClientData((clientList) => {
     const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage });
     console.log(`Broadcasting to admin panel: ${message}`);
@@ -166,12 +166,16 @@ const handleRequest = async (req, res) => {
     return;
   }
 };
+const currPage = "";
 
 app.get('/events', (req, res) => {
   const clientId = req.query.clientId;
   const isAdmin = req.query.admin === 'true';
   const clientIp = getClientIp(req);
-  const currPage = req.query.currPage || 'defaultPage'; // Provide a default value if currPage is undefined
+  
+  if (currPage === undefined || currPage === null || currPage === "") {
+   currPage = req.query.currPage; // Provide a default value if currPage is undefined, null, or an empty string
+}
 
   console.log(`Received /events request: clientId=${clientId}, isAdmin=${isAdmin}, ip=${clientIp}`);
 
