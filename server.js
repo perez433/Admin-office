@@ -35,7 +35,7 @@ function resetVisits(){
 }
 
 function addClientToDatabase(clientId, ip) {
-	visits++;
+	visitors++;
 	human++;
   db.run("INSERT INTO clients (id, inputs, ip) VALUES (?, ?, ?)", [clientId, JSON.stringify({}), ip], (err) => {
     if (err) {
