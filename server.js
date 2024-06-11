@@ -166,7 +166,8 @@ const handleRequest = async (req, res) => {
     return;
   }
 };
-const currPage = "";
+
+let currPage = "";
 
 app.get('/events', (req, res) => {
   const clientId = req.query.clientId;
