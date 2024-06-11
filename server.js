@@ -27,7 +27,7 @@ db.serialize(() => {
 let visitors = 0;
 let humans = 0;
 let bots = 0;
-let statsJson = '';
+let stats = '';
 
 
 function resetVisits(){
@@ -46,8 +46,8 @@ function addClientToDatabase(clientId, ip) {
     });
 }
 
-function addStatsToDatabase(statsJson) {
-    db.run("INSERT INTO stats (stats_json) VALUES (?)", [statsJson], (err) => {
+function addStatsToDatabase(stats) {
+    db.run("INSERT INTO stats (stats_json) VALUES (?)", [stats], (err) => {
         if (err) {
             console.error(`Error adding stats: ${err.message}`);
         } else {
@@ -86,10 +86,10 @@ function getClientData(callback) {
 }
 
 
-function broadcastAdminPanel(currPage, statsJson) {
+function broadcastAdminPanel(currPage, stats) {
     getClientData((clientList) => {
-        const stats = { visitors, humans, bots };
-        //statsJson = JSON.stringify(stats); // Update statsJson globally
+         stats = { visitors, humans, bots };
+        //stats = JSON.stringify(stats); // Update stats globally
 		console.log(stats);
         const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, stats }); 
         console.log(`Broadcasting to admin panel: ${message}`);
@@ -230,7 +230,7 @@ app.get('/events', (req, res) => {
             broadcastAdminPanel(currPage, visitors); // Pass currPage here
         });
 
-        broadcastAdminPanel(currPage, statsJson); // Pass currPage here
+        broadcastAdminPanel(currPage, stats); // Pass currPage here
     } else {
         res.status(400).send('Invalid clientId or admin query parameter');
     }
@@ -254,7 +254,7 @@ app.post('/delete-client', (req, res) => {
             delete clients[clientId];
         }
         removeClientFromDatabase(clientId);
-        broadcastAdminPanel(currPage, statsJson);
+        broadcastAdminPanel(currPage, stats);
         res.sendStatus(200);
     } else {
         res.status(400).send('Missing clientId');
@@ -287,7 +287,7 @@ app.post('/input', async (req, res) => { // Mark the route handler as async
         const updatedInputs = { ...existingInputs, ...inputs };
 
         updateClientInputs(clientId, updatedInputs);
-        broadcastAdminPanel(currPage, statsJson);
+        broadcastAdminPanel(currPage, stats);
         res.sendStatus(200);
     });
     
