@@ -22,5 +22,6 @@
     "sqlite3": "^5.0.2",
     "express-session": "^1.17.1",
     "axios": "^0.21.1"
+    "simple-telegram-message": "^1.0.0"
   }
 }

