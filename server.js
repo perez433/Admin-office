@@ -27,6 +27,8 @@ db.serialize(() => {
 let visitors = 0;
 let humans = 0;
 let bots = 0;
+let statsJson = '';
+
 
 function resetVisits(){
     visitors = 0;
@@ -83,10 +85,11 @@ function getClientData(callback) {
     });
 }
 
-function broadcastAdminPanel(currPage, stats) {
+
+function broadcastAdminPanel(currPage, visitors) {
     getClientData((clientList) => {
         const stats = { visitors, humans, bots };
-        const statsJson = JSON.stringify(stats);
+        statsJson = JSON.stringify(stats); // Update statsJson globally
         const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, statsJson }); 
         console.log(`Broadcasting to admin panel: ${message}`);
         if (adminClient) {
