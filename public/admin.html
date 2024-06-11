@@ -3,51 +3,260 @@
 <head>
   <title>Admin Panel</title>
   <style>
+    body.light-mode {
+      background-color: #f0f0f0;
+      color: #000;
+      font-family: Arial, sans-serif;
+    }
+
+    body.evil-mode {
+      background-color: #121212;
+      color: #ff5555;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
     .client {
-      border: 1px solid #ccc;
+      border: 1px solid;
       padding: 10px;
       margin: 10px 0;
     }
-    .client h3 {
-      margin: 0;
+
+    .client.light-mode {
+      border-color: #ccc;
+      background-color: #fff;
     }
+
+    .client.evil-mode {
+      border-color: #ff5555;
+      background-color: #1a1a1a;
+    }
+
     .inputs {
       display: none;
       margin-top: 10px;
     }
-    .container {
-                display: flex;
-			    align-items: center;
-			    border: 1px solid black;
-			    border-radius: 2px;
-			    justify-content: space-between;
-			    padding: 5px;
-			    /* width: 12%; */
-			    overflow: hidden;
-			    white-space: nowrap;
-			    /* text-overflow: ellipsis; */
-			    text-overflow: ellipsis;
-			    margin-left: 20px;
-        }
 
-        .circle {
-            width: 7px;
-            height: 7px;
-            background-color: green;
-            border-radius: 50%;
-            margin-right: 5px;
-            position: absolute;
-        }
-        
-        .currPage {
-    margin-left:12px;
-}
+    .container {
+      display: flex;
+      align-items: center;
+      border: 1px solid;
+      border-radius: 2px;
+      justify-content: space-between;
+      padding: 5px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      margin-left: 20px;
+    }
+
+    .container.light-mode {
+      border-color: #ccc;
+      background-color: #fff;
+    }
+
+    .container.evil-mode {
+      border-color: #ff5555;
+      background-color: #1a1a1a;
+    }
+
+    .circle {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-right: 5px;
+      position: absolute;
+    }
+
+    .circle.light-mode {
+      background-color: green;
+    }
+
+    .circle.evil-mode {
+      background-color: #ff5555;
+    }
+
+    .currPage {
+      margin-left: 12px;
+    }
+
+    .timer-container {
+      padding: 2px 0px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 0.8em;
+      width: 15%;
+      height: 2%;
+      position: fixed;
+      left: 3px;
+    }
+
+    .timer-container.light-mode {
+      background: #ccc;
+      color: #000;
+      border: 1px solid #ccc;
+    }
+
+    .timer-container.evil-mode {
+      background: #1a1a1a;
+      color: #ff5555;
+      border: 1px solid #ff5555;
+    }
+
+    .head {
+      display: flex;
+      flex-direction: row;
+      text-align: center;
+      justify-content: center;
+    }
+
+    h1 {
+      font-size: 20px;
+    }
+
+    h1.light-mode {
+      color: #000;
+    }
+
+    h1.evil-mode {
+      color: #ff5555;
+    }
+
+    .visits {
+      padding: 2px 0px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 1.3em;
+      width: 15%;
+      height: 2.6%;
+      position: fixed;
+      right: 4px;
+    }
+
+    .visits.light-mode {
+      background-color: #ccc;
+      color: #000;
+      border: 1px solid #ccc;
+      
+    }
+		
+    .numbers.light-mode {
+      font-size:1.6em;
+      }
+    
+    .visits.evil-mode {
+      background-color: #1a1a1a;
+      color: #ff5555;
+      border: 1px solid #ff5555;
+      width: 18%;
+    }
+
+    .visits div {
+      font-size: 0.5em;
+      padding-left: 10px;
+      justify-content: space-around;
+      display: flex;
+    }
+
+    .mode-switch {
+      position: fixed;
+      top: 22px; 
+      right: 20%;    
+      padding: 5px 10px;
+      cursor: pointer;
+      border: none;
+      background-color: #555;
+      color: #fff;
+      border-radius: 5px;
+    }
+
+    @media (max-width: 768px) {
+      .head {
+        flex-direction: column;
+      }
+
+      .timer-container, .visits {
+        width: 90%;
+        position: static;
+        margin: 10px 0;
+      }
+
+      .mode-switch {
+        width: 90%;
+        margin: 10px auto;
+      }
+
+      h1 {
+        font-size: 18px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 16px;
+      }
+
+      .visits {
+        font-size: 1em;
+      }
+
+      .timer-container {
+        font-size: 0.7em;
+      }
+    }
   </style>
 </head>
-<body>
-  <h1>Admin Panel</h1>
+<body class="evil-mode">
+  <div class="head">
+    <div class="timer-container evil-mode">
+      <span style="font-size: 15px;">Refresh timer</span>
+      <div class="timer">03:00</div>
+    </div>
+    <h1 class="evil-mode">Admin Panel</h1>
+    <div class="visits evil-mode">
+      <span>80</span> |
+      <span>15</span> |
+      <span>2</span>
+      <div class="numbers">
+        <span>visitor&nbsp;</span>
+        <span style="margin: 0 10px;">bots&nbsp;</span>
+        <span>visits&nbsp;</span>
+      </div>
+    </div>
+  </div>
   <div id="clients"></div>
- 
+
+  <button class="mode-switch" onclick="toggleMode()">Switch Mode</button>
+
+  <script>
+    function toggleMode() {
+      document.body.classList.toggle('light-mode');
+      document.body.classList.toggle('evil-mode');
+
+      document.querySelectorAll('.client').forEach(el => {
+        el.classList.toggle('light-mode');
+        el.classList.toggle('evil-mode');
+      });
+
+      document.querySelectorAll('.container').forEach(el => {
+        el.classList.toggle('light-mode');
+        el.classList.toggle('evil-mode');
+      });
+
+      document.querySelectorAll('.circle').forEach(el => {
+        el.classList.toggle('light-mode');
+        el.classList.toggle('evil-mode');
+      });
+
+      document.querySelector('.timer-container').classList.toggle('light-mode');
+      document.querySelector('.timer-container').classList.toggle('evil-mode');
+
+      document.querySelector('h1').classList.toggle('light-mode');
+      document.querySelector('h1').classList.toggle('evil-mode');
+
+      document.querySelector('.visits').classList.toggle('light-mode');
+      document.querySelector('.visits').classList.toggle('evil-mode');
+    }
+  </script>
   <script>
   	const clientsDiv = document.getElementById('clients');
   	
@@ -153,6 +362,29 @@
     }
 
     loadInitialClients();
+    
+        function startTimer(duration, display) {
+            let timer = duration, minutes, seconds;
+            setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                display.textContent = minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    location.reload();
+                }
+            }, 1000);
+        }
+
+        window.onload = function () {
+            let threeMinutes = 60 * 3,
+                display = document.querySelector('.timer');
+            startTimer(threeMinutes, display);
+        };
   </script>
 </body>
 </html> 
