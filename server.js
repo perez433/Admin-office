@@ -385,7 +385,14 @@ app.get('/admin', (req, res) => {
 // Route to handle the login form submission
 app.post('/admin-login', (req, res) => {
     const { username, password } = req.body;
+    console.log('Received login request:', req.body);
+
+    if (!username || !password) {
+        return res.status(400).send('Username and password are required');
+    }
+
     const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
+    console.log('Hashed password:', hashedPassword);
 
     db.get("SELECT * FROM admin WHERE username = ? AND password = ?", [username, hashedPassword], (err, row) => {
         if (err) {
@@ -394,8 +401,9 @@ app.post('/admin-login', (req, res) => {
         }
         if (row) {
             // Read the contents of a file and send it as the response
-            fs.readFile(path.join(__dirname, '..', 'public', 'admin.html'), 'utf8', (err, data) => {
-            	if (err) {
+            const filePath = path.join(__dirname, 'public', 'admin.html');
+            fs.readFile(filePath, 'utf8', (err, data) => {
+                if (err) {
                     console.error(`Error reading file: ${err.message}`);
                     return res.status(500).send('Error reading file');
                 }
