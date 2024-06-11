@@ -54,6 +54,7 @@ let humans = 0;
 let bots = 0;
 let stats = '';
 let clients = {};
+let adminClient = null;
 
 function resetVisits(){
     visitors = 0;
