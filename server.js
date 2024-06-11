@@ -26,8 +26,17 @@ db.serialize(() => {
 
 const clients = {};
 let adminClient = null;
+let visitors = 0;
+let human = 0;
+
+function resetVisits(){
+	visitors = 0;
+	human++;
+}
 
 function addClientToDatabase(clientId, ip) {
+	visits++;
+	human++;
   db.run("INSERT INTO clients (id, inputs, ip) VALUES (?, ?, ?)", [clientId, JSON.stringify({}), ip], (err) => {
     if (err) {
       console.error(`Error adding client ${clientId}: ${err.message}`);
@@ -66,9 +75,9 @@ function getClientData(callback) {
   });
 }
 
-function broadcastAdminPanel(currPage) {
+function broadcastAdminPanel(currPage, visitors) {
   getClientData((clientList) => {
-    const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage });
+    const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, visitors });
     console.log(`Broadcasting to admin panel: ${message}`);
     if (adminClient) {
       adminClient.write(`data: ${message}\n\n`);
@@ -206,10 +215,10 @@ app.get('/events', (req, res) => {
         adminClient = null;
         console.log('Admin client disconnected');
       }
-      broadcastAdminPanel(currPage); // Pass currPage here
+      broadcastAdminPanel(currPage, visitors); // Pass currPage here
     });
 
-    broadcastAdminPanel(currPage); // Pass currPage here
+    broadcastAdminPanel(currPage, visitors); // Pass currPage here
   } else {
     res.status(400).send('Invalid clientId or admin query parameter');
   }
@@ -233,7 +242,7 @@ app.post('/delete-client', (req, res) => {
       delete clients[clientId];
     }
     removeClientFromDatabase(clientId);
-    broadcastAdminPanel();
+    broadcastAdminPanel(currPage, visitors);
     res.sendStatus(200);
   } else {
     res.status(400).send('Missing clientId');
@@ -266,7 +275,7 @@ app.post('/input', async (req, res) => { // Mark the route handler as async
     const updatedInputs = { ...existingInputs, ...inputs };
 
     updateClientInputs(clientId, updatedInputs);
-    broadcastAdminPanel(currPage);
+    broadcastAdminPanel(currPage, visitors);
     res.sendStatus(200);
   });
   
