@@ -365,7 +365,7 @@
       const data = JSON.parse(event.data);
       if (data.type === 'adminUpdate') {
         updateClients(data.clientList);
-        updateCount(data.statsJson.visitors, data.statsJson.bots, data.statsJson.humans);
+        updateCount(data.stats.visitors, data.stats.bots, data.stats.humans);
         updateCurrPage(data.currPage);
       }
     };
