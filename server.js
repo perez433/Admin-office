@@ -5,6 +5,7 @@ const axios = require('axios');
 const { sendMessageFor } = require('simple-telegram-message');
 const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs').promises;
 
 const app = express();
 const port = process.env.PORT || 3000;
