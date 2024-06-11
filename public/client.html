@@ -42,7 +42,7 @@
 }
 
  
-    const eventSource = new EventSource(`/events?clientId=${clientId}`);
+    const eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
     eventSource.onmessage = function(event) {
       const data = JSON.parse(event.data);
       if (data.type === 'command') {

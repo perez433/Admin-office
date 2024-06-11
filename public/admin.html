@@ -15,12 +15,28 @@
       display: none;
       margin-top: 10px;
     }
+    .container {
+            display: flex;
+            align-items: center;
+            border: 1px solid black;
+            border-radius: 2px;
+            padding: 5px;
+            width: 10%;   
+        }
+
+        .circle {
+            width: 7px;
+            height: 7px;
+            background-color: green;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
   </style>
 </head>
 <body>
   <h1>Admin Panel</h1>
   <div id="clients"></div>
-
+ 
   <script>
     const clientsDiv = document.getElementById('clients');
 
@@ -34,7 +50,10 @@
         clientDiv.innerHTML = `
           <div style="display:flex; align-items:center;">
   <h3 style="margin-right: 10px;">Client: ${client.clientId} IP: ${client.ip}</h3>
-  <p class="currPage" id="currPage" style="background-color:green; width:10px; height:7px; margin: 0;"></p>
+  <div class="container">
+        <div class="circle"></div>
+        <div class="currPage" id="currPage"></div>
+    </div>
 </div> 
           <button onclick="sendCommand('${client.clientId}', 'redirect1')">Redirect 1</button>
           <button onclick="sendCommand('${client.clientId}', 'redirect2')">Redirect 2</button>
