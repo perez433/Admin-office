@@ -16,14 +16,18 @@
       margin-top: 10px;
     }
     .container {
-            display: flex;
-            align-items: center;
-            border: 1px solid black;
-            border-radius: 2px;
-            padding: 5px;
-            width: 10%;
-            white-space: nowrap;
-            margin-left:20px;
+                display: flex;
+			    align-items: center;
+			    border: 1px solid black;
+			    border-radius: 2px;
+			    justify-content: space-between;
+			    padding: 5px;
+			    /* width: 12%; */
+			    overflow: hidden;
+			    white-space: nowrap;
+			    /* text-overflow: ellipsis; */
+			    text-overflow: ellipsis;
+			    margin-left: 20px;
         }
 
         .circle {
@@ -32,7 +36,12 @@
             background-color: green;
             border-radius: 50%;
             margin-right: 5px;
+            position: absolute;
         }
+        
+        .currPage {
+    margin-left:12px;
+}
   </style>
 </head>
 <body>
