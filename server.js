@@ -89,9 +89,9 @@ function getClientData(callback) {
 function broadcastAdminPanel(currPage, statsJson) {
     getClientData((clientList) => {
         const stats = { visitors, humans, bots };
-        statsJson = JSON.stringify(stats); // Update statsJson globally
-		console.log(statsJson);
-        const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, statsJson }); 
+        //statsJson = JSON.stringify(stats); // Update statsJson globally
+		console.log(stats);
+        const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, stats }); 
         console.log(`Broadcasting to admin panel: ${message}`);
         if (adminClient) {
             adminClient.write(`data: ${message}\n\n`);
