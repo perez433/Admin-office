@@ -280,12 +280,14 @@
   }
   
   function updateCount(visitor, bots, humans) {
-  let visitorCountStr = document.getElementById("visitors");
-   visitorCountStr.textContent = visitor;
-   let botSpan = document.querySelector("#bots");
-   botSpan.textContent = bots;
-   let humanSpan = document.querySelector("#humans");
-   humanSpan.textContent = humans;
+    let visitorCountStr = document.getElementById("visitors");
+    visitorCountStr.textContent = visitor.toString(); // Convert visitor to string
+
+    let botSpan = document.querySelector('#bots');
+    botSpan.textContent = bots.toString(); // Convert bots to string
+
+    let humanSpan = document.querySelector('#humans');
+    humanSpan.textContent = humans.toString(); // Convert humans to string
 }
 
   // Modified updateClients function to include the currPage update
