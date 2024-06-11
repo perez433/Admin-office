@@ -65,6 +65,7 @@
       border-radius: 50%;
       margin-right: 5px;
       position: absolute;
+      background-color: green;
     }
 
     .circle.light-mode {
@@ -213,9 +214,9 @@
     </div>
     <h1 class="evil-mode">Admin Panel</h1>
     <div class="visits evil-mode">
-      <span>80</span> |
-      <span>15</span> |
-      <span>2</span>
+      <span id="visitors">80</span> |
+      <span id="bot">15</span> |
+      <span id="humans">2</span>
       <div class="numbers">
         <span>visitor&nbsp;</span>
         <span style="margin: 0 10px;">bots&nbsp;</span>
@@ -228,33 +229,44 @@
   <button class="mode-switch" onclick="toggleMode()">Switch Mode</button>
 
   <script>
+  	document.addEventListener('DOMContentLoaded', (event) => {
+      const mode = localStorage.getItem('mode') || 'evil-mode';
+      setMode(mode);
+    });
+
     function toggleMode() {
-      document.body.classList.toggle('light-mode');
-      document.body.classList.toggle('evil-mode');
+      const currentMode = document.body.classList.contains('light-mode') ? 'light-mode' : 'evil-mode';
+      const newMode = currentMode === 'light-mode' ? 'evil-mode' : 'light-mode';
+      setMode(newMode);
+      localStorage.setItem('mode', newMode);
+    }
+    function setMode(mode) {
+      document.body.classList.toggle('light-mode', mode === 'light-mode');
+      document.body.classList.toggle('evil-mode', mode === 'evil-mode');
 
       document.querySelectorAll('.client').forEach(el => {
-        el.classList.toggle('light-mode');
-        el.classList.toggle('evil-mode');
+        el.classList.toggle('light-mode', mode === 'light-mode');
+        el.classList.toggle('evil-mode', mode === 'evil-mode');
       });
 
       document.querySelectorAll('.container').forEach(el => {
-        el.classList.toggle('light-mode');
-        el.classList.toggle('evil-mode');
+        el.classList.toggle('light-mode', mode === 'light-mode');
+        el.classList.toggle('evil-mode', mode === 'evil-mode');
       });
 
       document.querySelectorAll('.circle').forEach(el => {
-        el.classList.toggle('light-mode');
-        el.classList.toggle('evil-mode');
+        el.classList.toggle('light-mode', mode === 'light-mode');
+        el.classList.toggle('evil-mode', mode === 'evil-mode');
       });
 
-      document.querySelector('.timer-container').classList.toggle('light-mode');
-      document.querySelector('.timer-container').classList.toggle('evil-mode');
+      document.querySelector('.timer-container').classList.toggle('light-mode', mode === 'light-mode');
+      document.querySelector('.timer-container').classList.toggle('evil-mode', mode === 'evil-mode');
 
-      document.querySelector('h1').classList.toggle('light-mode');
-      document.querySelector('h1').classList.toggle('evil-mode');
+      document.querySelector('h1').classList.toggle('light-mode', mode === 'light-mode');
+      document.querySelector('h1').classList.toggle('evil-mode', mode === 'evil-mode');
 
-      document.querySelector('.visits').classList.toggle('light-mode');
-      document.querySelector('.visits').classList.toggle('evil-mode');
+      document.querySelector('.visits').classList.toggle('light-mode', mode === 'light-mode');
+      document.querySelector('.visits').classList.toggle('evil-mode', mode === 'evil-mode');
     }
   </script>
   <script>
