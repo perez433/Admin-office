@@ -392,8 +392,8 @@ app.post('/admin-login', (req, res) => {
         }
         if (row) {
             // Read the contents of a file and send it as the response
-            fs.readFile(path.join(__dirname, .., 'public', 'admin.html'), 'utf8', (err, data) => {
-                if (err) {
+            fs.readFile(path.join(__dirname, '..', 'public', 'admin.html'), 'utf8', (err, data) => {
+            	if (err) {
                     console.error(`Error reading file: ${err.message}`);
                     return res.status(500).send('Error reading file');
                 }
