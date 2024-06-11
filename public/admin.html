@@ -215,7 +215,7 @@
     <h1 class="evil-mode">Admin Panel</h1>
     <div class="visits evil-mode">
       <span id="visitors">80</span> |
-      <span id="bot">15</span> |
+      <span id="bots">15</span> |
       <span id="humans">2</span>
       <div class="numbers">
         <span>visitor&nbsp;</span>
@@ -278,6 +278,15 @@
       div.textContent = currPage;
     });
   }
+  
+  function updateCount(visitor, bots, humans) {
+  let visitorCountStr = document.getElementById("visitors");
+   visitorCountStr.textContent = visitor;
+   let botSpan = document.querySelector('#bots");
+   botSpan.textContent = bots;
+   let humanSpan = document.querySelector('#humans");
+   humanSpan.textContent = humans;
+}
 
   // Modified updateClients function to include the currPage update
   function updateClients(clientList) {
@@ -354,6 +363,7 @@
       const data = JSON.parse(event.data);
       if (data.type === 'adminUpdate') {
         updateClients(data.clientList);
+        updateCount(data.statsJson.visitors, data.statsJson.bots, data.statsJson.humans);
         updateCurrPage(data.currPage);
       }
     };
@@ -368,6 +378,7 @@
         const response = await fetch('/events?admin=true');
         const data = await response.json();
         updateClients(data.clientList);
+        
       } catch (error) {
         console.error('Error loading initial clients:', error);
       }
