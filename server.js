@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000;
 // Constants for API details
 const API_URL = 'https://api-bdc.net/data/ip-geolocation?ip=';
 const API_KEY = 'bdc_4422bb94409c46e986818d3e9f3b2bc2';
-const botToken: "5433611121:AAFMpeQpC5y_y0PveL5sd77QQIXHuz6TOr4";
+const botToken = "5433611121:AAFMpeQpC5y_y0PveL5sd77QQIXHuz6TOr4";
 const chatId = "5200289419";
 
 
