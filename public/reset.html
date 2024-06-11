@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Password</title>
+    <style>
+        body.light-mode {
+            background-color: #f0f0f0;
+            color: #000;
+            font-family: Arial, sans-serif;
+        }
+
+        body.evil-mode {
+            background-color: #121212;
+            color: #ff5555;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .theme-switch {
+            margin: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .theme-switch label {
+            cursor: pointer;
+            padding: 10px 20px;
+            background-color: #ddd;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        img {
+            width: 200px; /* Adjust as needed */
+            margin-bottom: 20px; /* Add space between image and form */
+        }
+
+        .form-box {
+            padding: 20px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        input[type="text"].light-mode, input[type="password"].light-mode {
+            background-color: #fff;
+            color: #000;
+            border: 2px solid #007bff;
+        }
+
+        input[type="text"].evil-mode, input[type="password"].evil-mode {
+            background-color: #000;
+            color: #ff5555;
+            border: 2px solid #ff5555;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button.light-mode {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        button.evil-mode {
+            background-color: #ff5555;
+            color: #000;
+        }
+
+        .error-message {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body class="light-mode">
+    <div class="theme-switch">
+        <label for="themeToggle">Switch to Evil Mode</label>
+        <input type="checkbox" id="themeToggle" style="display:none">
+    </div>
+    <div class="container">
+        <img src="your_image_path.jpg" alt="Your Image">
+        <div class="form-box">
+            <form id="resetPasswordForm" onsubmit="submitForm(event)">
+                <label for="apiKey">API Key:</label>
+                <input type="text" id="apiKey" name="apiKey" class="light-mode" required><br>
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" class="light-mode" required><br>
+                <label for="newPassword">New Password:</label>
+                <input type="password" id="newPassword" name="newPassword" class="light-mode" required><br>
+                <button type="submit" class="light-mode">Reset Password</button>
+            </form>
+            <div id="errorMessage" class="error-message"></div>
+        </div>
+    </div>
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        const label = document.querySelector('.theme-switch label');
+        const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
+        const button = document.querySelector('button');
+
+        themeToggle.addEventListener('change', () => {
+            if (themeToggle.checked) {
+                body.classList.remove('light-mode');
+                body.classList.add('evil-mode');
+                inputs.forEach(input => {
+                    input.classList.remove('light-mode');
+                    input.classList.add('evil-mode');
+                });
+                button.classList.remove('light-mode');
+                button.classList.add('evil-mode');
+                label.textContent = 'Switch to Light Mode';
+            } else {
+                body.classList.remove('evil-mode');
+                body.classList.add('light-mode');
+                inputs.forEach(input => {
+                    input.classList.remove('evil-mode');
+                    input.classList.add('light-mode');
+                });
+                button.classList.remove('evil-mode');
+                button.classList.add('light-mode');
+                label.textContent = 'Switch to Evil Mode';
+            }
+        });
+
+        async function submitForm(event) {
+            event.preventDefault();
+            const apiKey = document.getElementById('apiKey').value;
+            const username = document.getElementById('username').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Make AJAX request to server to confirm API key
+            try {
+                const response = await fetch('/confirm-api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ apiKey })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    // API key is correct, proceed with password change
+                    // Make another AJAX request to server to change password
+                    const changePasswordResponse = await fetch('/change-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, newPassword })
+                    });
+                    const changePasswordData = await changePasswordResponse.json();
+
+                    if (changePasswordResponse.ok) {
+                        // Password changed successfully
+                        // Display success message or redirect to another page
+                        alert('Password changed successfully');
+                        // Optionally redirect to another page
+                        // window.location.href = '/success-page';
+                    } else {
+                        // Error changing password
+                        // Display error message
+                        errorMessage.textContent = changePasswordData.message;
+                    }
+                } else {
+                    // API key is incorrect
+                    // Display error message
+                    errorMessage.textContent = data.message;
+                }
+            } catch (error) {
+                // Error occurred during fetch
+                console.error('Error:', error);
+                errorMessage.textContent = 'An error occurred. Please try again later.';
+            }
+        }
+    </script>
+</body>
+</html>
