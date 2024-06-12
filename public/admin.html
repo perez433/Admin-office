@@ -278,15 +278,15 @@
     console.log(thisName);
     thisName.forEach(div => {
     nameAttribute = div.getAttribute('name');
-    console.log('nameAttribute === data.clientList.clientId');
-        if (nameAttribute === data.clientList.clientId) {  // Assuming there's a data attribute for client ID
-            console.log('nameAttribute === data.clientList.clientId');
+    console.log(nameAttribute "===" data.clientList.clientId);
+        if (nameAttribute === data) {  // Assuming there's a data attribute for client ID
+            console.log('nameAttribute === data');
         div.textContent = data.currPage;
-            let clientThis = data.clientList.clientId;
+            let clientThis = data;
             if (data.currPage.toLowerCase() === "disconnected") {
                 document.getElementById(`currPage-${clientThis}`).previousElementSibling.style.color = "red";
             }
-        } 
+        }  
     });
 }
   
