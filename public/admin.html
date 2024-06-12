@@ -277,7 +277,7 @@
     const thisName = document.querySelectorAll('.thisName');
     console.log(thisName);
     thisName.forEach(div => {
-    nameAttribute = div.getAttribute('name');
+    nameAttribute = div.getElementById('name');
         if (nameAttribute === data) {  // Assuming there's a data attribute for client ID
             console.log('nameAttribute === data');
         div.textContent = data.currPage;
