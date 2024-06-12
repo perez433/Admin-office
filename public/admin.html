@@ -275,6 +275,13 @@
    function updateCurrPage(currPage) {
     const currPageDivs = document.querySelectorAll('.currPage');
     currPageDivs.forEach(div => {
+    if(client.clientId === data.clientList.id){
+        updateCurrPage(data.currPage);
+        let clientThis = data.clientList.clientId;
+        if (data.currPage.toLowerCase() === "disconnected") {
+    document.getElementById(`currPage-${clientThis}`).previousElementSibling.style.color = "red";
+        	}
+        } 
       div.textContent = currPage;
     });
   }
@@ -366,11 +373,7 @@
       if (data.type === 'adminUpdate') {
         updateClients(data.clientList);
         updateCount(data.stats.visitors, data.stats.bots, data.stats.humans);
-        updateCurrPage(data.currPage);
-        let clientThis = data.clientList.clientId;
-        if (data.currPage.toLowerCase() === "disconnected") {
-    document.getElementById(`currPage-${clientThis}`).previousElementSibling.style.color = "red";
-        }
+        
       }
     };
 
