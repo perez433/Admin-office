@@ -310,7 +310,7 @@
       const inputsHtml = Object.entries(client.inputs).map(([key, value]) => `<p>${key}: ${value}</p>`).join('');
       clientDiv.innerHTML = `
         <div style="display:flex; align-items:center;">
-        	<div name="thisName" id="${client.clientId}"></div>
+        	<div class="thisName" id="${client.clientId}"></div>
           <h3 style="margin-right: 10px;">Client: ${client.clientId} IP: ${client.ip}</h3>
           <div class="container">
             <div class="circle"></div>
