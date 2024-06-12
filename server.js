@@ -68,6 +68,7 @@ let bots = 0;
 let stats = '';
 let clients = {};
 let adminClient = null;
+let currPage = "";
 
 function resetVisits(){
     visitors = 0;
@@ -130,6 +131,7 @@ function getClientData(callback) {
 function broadcastAdminPanel(currPage, stats) {
     getClientData((clientList) => {
          stats = { visitors, humans, bots };
+         currPage = {currPage};
         //stats = JSON.stringify(stats); // Update stats globally
 		console.log(stats);
         const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, stats }); 
@@ -268,7 +270,7 @@ const handleRequest = async (req, res) => {
     }
 };
 
-let currPage = "";
+
 
 const HEARTBEAT_INTERVAL = 60000; // 30 seconds
 
