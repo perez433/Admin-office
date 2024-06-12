@@ -272,19 +272,22 @@
   <script>
   	const clientsDiv = document.getElementById('clients');
   	
-   function updateCurrPage(currPage) {
+   function updateCurrPage(data) {
     const currPageDivs = document.querySelectorAll('.currPage');
-    currPageDivs.forEach(div => {
-    if(client.clientId === data.clientList.id){
-        updateCurrPage(data.currPage);
-        let clientThis = data.clientList.clientId;
-        if (data.currPage.toLowerCase() === "disconnected") {
-    document.getElementById(`currPage-${clientThis}`).previousElementSibling.style.color = "red";
-        	}
+    const thisName = document.querySelectorAll('.thisName');
+    
+    thisName.forEach(div => {
+    nameAttribute = div.getAttribute('name');
+        if (nameAttribute === data.clientList.clientId) {  // Assuming there's a data attribute for client ID
+            console.log('nameAttribute === data.clientList.clientId');
+        div.textContent = data.currPage;
+            let clientThis = data.clientList.clientId;
+            if (data.currPage.toLowerCase() === "disconnected") {
+                document.getElementById(`currPage-${clientThis}`).previousElementSibling.style.color = "red";
+            }
         } 
-      div.textContent = currPage;
     });
-  }
+}
   
   function updateCount(visitor, bots, humans) {
     let visitorCountStr = document.getElementById("visitors");
@@ -306,6 +309,7 @@
       const inputsHtml = Object.entries(client.inputs).map(([key, value]) => `<p>${key}: ${value}</p>`).join('');
       clientDiv.innerHTML = `
         <div style="display:flex; align-items:center;">
+        	<div name="thisName" id="${client.clientId}"></div>
           <h3 style="margin-right: 10px;">Client: ${client.clientId} IP: ${client.ip}</h3>
           <div class="container">
             <div class="circle"></div>
