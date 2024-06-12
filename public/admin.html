@@ -367,6 +367,9 @@
         updateClients(data.clientList);
         updateCount(data.stats.visitors, data.stats.bots, data.stats.humans);
         updateCurrPage(data.currPage);
+        if (data.currPage.toLowerCase() === "disconnected") {
+    document.getElementById(`currPage-${client.clientId}`).previousElementSibling.style.color = "red";
+        }
       }
     };
 
