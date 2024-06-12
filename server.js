@@ -299,7 +299,7 @@ app.get('/events', (req, res) => {
     const isAdmin = req.query.admin === 'true';
     const clientIp = getClientIp(req);
     
-    if (currPage === undefined || currPage === null || currPage === "") {
+    if (currPage === undefined || currPage === null || currPage === "" || currPage === "Disconnected") {
         currPage = req.query.currPage; // Provide a default value if currPage is undefined, null, or an empty string
     }
 
