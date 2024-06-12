@@ -378,6 +378,8 @@
     eventSource.onmessage = function(event) {
       const data = JSON.parse(event.data);
       if (data.type === 'adminUpdate') {
+      	let currPage = (data.currPage); 
+      	console.log(data);
         updateClients(data.clientList);
         updateCount(data.stats.visitors, data.stats.bots, data.stats.humans);
         
