@@ -278,7 +278,7 @@
     thisNameElements.forEach(div => {
         if (div.id == clientId) {
         console.log("curpage: " + currPage);
-            div.textContent = currPage;
+            div.parentElement.children[2].children[1].textContent = currPage;
             if (currPage.toLowerCase() === "disconnected") {
                 document.getElementById(`currPage-${clientId}`).previousElementSibling.style.color = "red";
             }
