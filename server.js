@@ -270,6 +270,8 @@ const handleRequest = async (req, res) => {
 
 let currPage = "";
 
+const HEARTBEAT_INTERVAL = 30000; // 30 seconds
+
 app.get('/events', (req, res) => {
     const clientId = req.query.clientId;
     const isAdmin = req.query.admin === 'true';
@@ -297,7 +299,26 @@ app.get('/events', (req, res) => {
             console.log('Admin client connected');
         }
 
+        // Send heartbeat signal to the client at regular intervals
+        const heartbeatInterval = setInterval(() => {
+            res.write(':heartbeat\n\n'); // Heartbeat signal as a comment line
+        }, HEARTBEAT_INTERVAL);
+
+        // Log if no heartbeat signals are received within the interval
+        const heartbeatTimeout = setTimeout(() => {
+        	delete clients[clientId];
+            console.log('No heartbeat signals received. Client may be disconnected.');
+        }, HEARTBEAT_INTERVAL * 2); // Double the interval as timeout
+
+        const heartbeatTimeoutRed = setTimeout(() => {
+        	currPage = "Disconnected";
+            broadcastAdminPanel(currPage, visitors);
+        }, 40000);
+        
         req.on('close', () => {
+            clearInterval(heartbeatInterval); // Clear the heartbeat interval when the connection is closed
+            clearTimeout(heartbeatTimeout); // Clear the heartbeat timeout
+			clearTimeout(heartbeatTimeoutRed);
             if (clientId) {
                 delete clients[clientId];
                 removeClientFromDatabase(clientId);
