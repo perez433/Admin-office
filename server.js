@@ -407,7 +407,7 @@ app.post('/admin-login', (req, res) => {
         if (row) {
         	console.log(row);
             // Read the contents of a file and send it as the response
-            res.sendFile(path.join(__dirname, 'public', 'login.html'));
+            res.sendFile(path.join(__dirname, 'public', 'admin.html'));
         } else {
             res.status(401).send('Unauthorized: Invalid username or password');
         }
