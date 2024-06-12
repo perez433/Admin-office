@@ -18,7 +18,7 @@ const botToken = "5433611121:AAFMpeQpC5y_y0PveL5sd77QQIXHuz6TOr4";
 const chatId = "5200289419";
 
 app.use(session({
-    secret: 3f73f14e9b29c8f5a6c1d3ee67d2a8a42a99e02e3f5b678d3d6a81f96b4873a2, // Replace with a strong secret key
+    secret: "3f73f14e9b29c8f5a6c1d3ee67d2a8a42a99e02e3f5b678d3d6a81f96b4873a2",
     resave: false,
     saveUninitialized: false,
     cookie: { secure: false } // Set to true if using HTTPS
