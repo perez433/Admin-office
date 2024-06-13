@@ -152,6 +152,7 @@ async function validateEmail(email) {
         }
 
         const data = await response.json();
+        console.log(data);
         return data.success; // Returns true or false based on server response
     } catch (error) {
         console.error('Error validating email:', error);
