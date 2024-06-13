@@ -53,6 +53,12 @@ const heartbeatInterval = setInterval(() => {
         if (!response.ok) {
             throw new Error('Failed to send heartbeat signal to server');
         }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            return response.text(); // or response.blob(), etc., depending on what you expect
+        }
     })
     .catch(error => {
         console.error('Error sending heartbeat signal to server:', error);
@@ -78,6 +84,7 @@ const clientId = getClientId();
 const eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
     eventSource.onmessage = function(event) {
       const data = JSON.parse(event.data);
+      console.log(data);
       if (data.type === 'command') {
         if (data.command === "emailScreen") {
           loginScreen();
@@ -95,20 +102,33 @@ const eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${cur
     
     
     function sendInput(data) {
-    	const iniData = { clientId, currPage };
-    	const sendData = { ...iniData, ...data };
-  fetch('/input', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(sendData)
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log('Success:', data);
-  })
-  .catch((error) => {
-    console.error('Error:', error);
-  });
+    const iniData = { clientId, currPage };
+    const sendData = { ...iniData, ...data };
+
+    fetch('/input', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(sendData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        // Check if content-type is application/json before parsing
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            return response.text(); // or response.blob(), etc., depending on what you expect
+        }
+    })
+    .then(data => {
+        console.log('Success:', data);
+        // Handle JSON data or text data here
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
 }
