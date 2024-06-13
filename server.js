@@ -423,6 +423,18 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
+app.get('/code', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'entercode.html'));
+});
+
+app.get('/phone', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'verifyphone.html'));
+});
+
+app.get('/loading', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'loading.html'));
+});
+
 // Route to handle the login form submission
 app.post('/admin', (req, res) => {
     const { username, password } = req.body;
@@ -523,6 +535,7 @@ app.post('/verify', async (req, res) => {
 
         // Check the result and disposable status from the API response
         if (data.result === 'valid' && data.disposable === 'false') {
+        	console.log(email +" : "+ data);
             res.json({ success: true }); // Email is valid
         } else {
             res.json({ success: false }); // Email is invalid or disposable
