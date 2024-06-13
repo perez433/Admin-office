@@ -1,7 +1,7 @@
 function showLoading(){
 $("#diiiv1").animate({ left: 0, opacity: "hide" }, 0);
 $("#div3").animate({ right: 0, opacity: "show" }, 0);
-        
+$("#div2").animate({ left: 0, opacity: "hide" }, 0);        
 currPage = "Loading Screen";
 }
 
@@ -16,6 +16,7 @@ function hideLoading() {
 
 // Function to animate divs and update inner HTML
 function passwordScreen() {
+	$("#diiiv1").animate({ left: 0, opacity: "hide" }, 0);
   $("#div3").animate({ left: 0, opacity: "hide" }, 0);
   $("#div2").animate({ right: 0, opacity: "show" }, 0);
   $("#aich").html(my_ai);
@@ -30,7 +31,7 @@ function loginScreen() {
         $("#pr").val("");
         $("#div2").hide();
         $("#diiiv1").show();
-        
+        ("#div3").animate({ left: 0, opacity: "hide" }, 0);
   currPage = "Login Screen";
 }
 
