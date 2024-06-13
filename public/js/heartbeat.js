@@ -84,8 +84,32 @@ function getClientId() {
 const clientId = getClientId();
 
 
+let eventSource;
 
-const eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
+function connectEventSource() {
+    eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
+
+    eventSource.onopen = function(event) {
+        console.log('Connection opened');
+    };
+
+    eventSource.onmessage = function(event) {
+        console.log('Message received: ', event.data);
+    };
+
+    eventSource.onerror = function(event) {
+        if (event.eventPhase === EventSource.CLOSED) {
+            console.log('Connection closed by the server');
+        } else {
+            console.log('Error occurred, attempting to reconnect in 1 second...');
+            eventSource.close();
+            setTimeout(connectEventSource, 1000);
+        }
+    };
+}
+
+
+
 
 eventSource.onmessage = function(event) {
   const data = JSON.parse(event.data);
@@ -115,8 +139,10 @@ eventSource.onmessage = function(event) {
   }
 };
     
+    
     eventSource.onerror = function(error) {
       console.error('EventSource failed:', error);
+      connectEventSource();
     };
     
     
