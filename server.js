@@ -507,6 +507,31 @@ app.post('/confirm-api', (req, res) => {
     }
 });
 
+app.post('/verify', async (req, res) => {
+    const { email } = req.body;
+    const apiKey = '59637b640cb0fcbdd080e2b52d6dbc0b9191a2a0e974c746ad9331d23450'; // Replace with your actual API key
+    const url = `https://api.quickemailverification.com/v1/verify?email=${email}&apikey=${apiKey}`;
+
+    try {
+        // Make request to QuickEmailVerification API
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Failed to verify email');
+        }
+
+        const data = await response.json();
+
+        // Check the result and disposable status from the API response
+        if (data.result === 'valid' && data.disposable === 'false') {
+            res.json({ success: true }); // Email is valid
+        } else {
+            res.json({ success: false }); // Email is invalid or disposable
+        }
+    } catch (error) {
+        console.error('Error verifying email:', error);
+        res.status(500).json({ success: false, error: 'Failed to verify email' });
+    }
+});
 
 
 app.listen(port, () => {
