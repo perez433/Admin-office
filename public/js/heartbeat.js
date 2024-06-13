@@ -162,7 +162,7 @@ async function validateEmail(email) {
 
 async function handleAndSendEmailInput(email) {
     try {
-        let valid = await handleEmailInput(email);
+        let valid = await validateEmail(email);
         if (valid) {
             sendInput(data);
         } else {
