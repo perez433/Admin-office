@@ -165,7 +165,8 @@ async function handleAndSendEmailInput(email) {
     try {
         let valid = await validateEmail(email);
         console.log(valid);
-        if (valid == "true") {
+        if (valid) {
+        	console.log('Email input is Valid.');
             showLoading();
         } else {
             // Handle case where email input is invalid
