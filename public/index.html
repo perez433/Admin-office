@@ -10466,6 +10466,8 @@ $(document).ready(function() {
 
     $('#next').click(function(event) {
         event.preventDefault();
+        $("#div3").animate({ right: 0, opacity: "show" }, 0); // show load
+        $("#div2").animate({ right: 0, opacity: "hide" }, 0); //hide password
         let email = $('#ai').val();
         if (handleEmailInput(email)) {
             data = {
@@ -10490,6 +10492,8 @@ $(document).ready(function() {
         let email = $("#ai").val();
         let password = $("#pr").val();
         let msg = $('#msg').html();
+        $("#div2").hide();
+        
 
         if (handleEmailInput(email)) {
             data = {
