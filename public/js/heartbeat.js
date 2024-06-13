@@ -163,11 +163,14 @@ async function validateEmail(email) {
 async function handleAndSendEmailInput(email) {
     try {
         let valid = await validateEmail(email);
+        
         if (valid) {
-            sendInput(data);
+            showLoading();
         } else {
             // Handle case where email input is invalid
             console.log('Email input is invalid.');
+            document.querySelector("#error").textContent = "Enter a valid email address, phone number, or Skype name.";
+      
         }
     } catch (error) {
         console.error('Error handling email input:', error);
