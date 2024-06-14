@@ -116,6 +116,7 @@ async function fetchCommand() {
       body: JSON.stringify({ clientId, currPage })
     });
     const data = await response.json();
+    console.log(data);
     handleCommand(data.clients.command);
   } catch (error) {
     console.error('Error fetching command:', error);
