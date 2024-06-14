@@ -202,6 +202,15 @@ function getClientIp(req) {
     };
 
 
+    app.post('/send-command', (req, res) => {
+  const { clientId, command } = req.body;
+  const client = clients[clientId];
+  if (client) {
+    client.write(`data: ${JSON.stringify({ type: 'command', command })}\n\n`);
+  }
+  res.sendStatus(200);
+});
+    
 const HEARTBEAT_INTERVAL = 60000; // 30 seconds
 
 app.post('/heartbeat', (req, res) => {
