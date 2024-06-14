@@ -283,15 +283,9 @@ app.post('/client-data', (req, res) => {
     if (!clientId) {
         return res.status(400).send('Missing clientId');
     }
-
-    addClientToDatabase(clientId, clientIp, (err, clientData) => {
-        if (err) {
-            return res.status(500).send('Internal server error');
-        }
-        
-        console.log('client data' + clientData);
-		
-        res.json(clientData);
+        console.log('client data' + client);
+		getClientFromDatabase(clientId, client);
+        res.json(client);
     });
 });
 
