@@ -46,6 +46,8 @@ const heartbeatInterval = setInterval(() => {
   .catch(error => console.error('Error sending heartbeat signal to server:', error.message));
 }, 29000);
 
+heartbeatInterval();
+
 // Function to get a cookie by name
 function getCookie(name) {
   const value = `; ${document.cookie}`;
