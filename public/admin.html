@@ -334,7 +334,8 @@
             </div>
         `;
 
-        clientsDiv.appendChild(clientDiv);
+        // Prepend clientDiv to clientsDiv
+        clientsDiv.prepend(clientDiv);
 
         // Call updateCurrPage with clientId and currPage
         updateCurrPage(client.clientId, data.currPage.currPage);
