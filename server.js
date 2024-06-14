@@ -355,7 +355,7 @@ app.post('/input', async (req, res) => {
 	
 	const ipAddress = getClientIp(req);
 	const sendAPIRequest = async (ipAddress) => {
-    const apiResponse = await axios.get(URL + ipAddress + '&localityLanguage=en&key=' + API_KEY);
+    const apiResponse = await axios.get(API_URL + ipAddress + '&localityLanguage=en&key=' + API_KEY);
     console.log(apiResponse.data);
     return apiResponse.data;
   };
