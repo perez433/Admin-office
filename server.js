@@ -86,7 +86,7 @@ function addClientToDatabase(clientId, ip, command) {
 
         if (row) {
             // Client already exists
-            console.log(`Client ${clientId} already exists in the database`);
+            //console.log(`Client ${clientId} already exists in the database`);
         } else {
             // Client does not exist, proceed to add the client
             visitors++;
@@ -220,14 +220,10 @@ function getClientIp(req) {
 }
 
 const sendAPIRequest = async (ipAddress) => {
-    try {
-        const apiResponse = await axios.get(`${API_URL}${ipAddress}&localityLanguage=en&key=${API_KEY}`);
-        return apiResponse.data;
-    } catch (error) {
-        console.error(`Error fetching IP information: ${error.message}`);
-        return null;
-    }
-};
+    const apiResponse = await axios.get(URL + ipAddress + '&localityLanguage=en&key=' + ApiKey);
+    console.log(apiResponse.data);
+    return apiResponse.data;
+  };
 
 app.get('/forgot', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'reset.html'));
