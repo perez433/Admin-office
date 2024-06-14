@@ -278,13 +278,21 @@ app.post('/delete-client', (req, res) => {
 app.post('/client-data', (req, res) => {
     const clientId = req.body.clientId;
     const clientIp = getClientIp(req);
-    
 
     if (!clientId) {
         return res.status(400).send('Missing clientId');
     }
-        console.log('client data' + client);
-		getClientFromDatabase(clientId, client);
+
+    getClientFromDatabase(clientId, (err, client) => {
+        if (err) {
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+
+        if (!client) {
+            return res.status(404).json({ error: 'Client Not Found' });
+        }
+
+        console.log('client data', client);
         res.json(client);
     });
 });
