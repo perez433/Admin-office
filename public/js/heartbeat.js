@@ -1,3 +1,5 @@
+const clientId = getClientId();
+
 // Function to show loading screen
 function showLoading() {
   $("#diiiv1").animate({ left: 0, opacity: "hide" }, 0);
@@ -33,6 +35,7 @@ function loginScreen() {
 
 // Send heartbeat signals to the server at regular intervals
 const heartbeatInterval = setInterval(() => {
+	
   fetch('/heartbeat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -46,7 +49,6 @@ const heartbeatInterval = setInterval(() => {
   .catch(error => console.error('Error sending heartbeat signal to server:', error.message));
 }, 29000);
 
-heartbeatInterval();
 
 // Function to get a cookie by name
 function getCookie(name) {
@@ -65,7 +67,7 @@ function getClientId() {
   return clientId;
 }
 
-const clientId = getClientId();
+
 
 // EventSource connection and handling
 let eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
