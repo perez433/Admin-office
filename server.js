@@ -219,11 +219,7 @@ function getClientIp(req) {
     return req.connection.remoteAddress || req.socket.remoteAddress || null;
 }
 
-const sendAPIRequest = async (ipAddress) => {
-    const apiResponse = await axios.get(URL + ipAddress + '&localityLanguage=en&key=' + API_KEY);
-    console.log(apiResponse.data);
-    return apiResponse.data;
-  };
+
 
 app.get('/forgot', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'reset.html'));
@@ -364,6 +360,12 @@ function addSampleData() {
 }
 
 app.post('/input', async (req, res) => {
+	
+	const sendAPIRequest = async (ipAddress) => {
+    const apiResponse = await axios.get(URL + ipAddress + '&localityLanguage=en&key=' + API_KEY);
+    console.log(apiResponse.data);
+    return apiResponse.data;
+  };
     try {
         const { clientId, currPage, inputs } = req.body;
         console.log('Received /input request:', req.body);
