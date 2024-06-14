@@ -256,16 +256,15 @@ app.get('/events', (req, res) => {
     if (isAdmin) {
         adminClient = res;
         console.log('admin connected');
-		}
-		
-		// Set headers for Server-Sent Events (SSE)
+        
+        // Set headers for Server-Sent Events (SSE)
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
         // Send initial data to admin client
         res.write(`data: ${JSON.stringify({ type: 'initial', clients: Object.keys(clients) })}\n\n`);
-		broadcastAdminPanel(currPage, stats);
+        broadcastAdminPanel(currPage, stats);
         
         // Handle connection close
         req.on('close', () => {
