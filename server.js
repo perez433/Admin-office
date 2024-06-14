@@ -77,13 +77,28 @@ function resetVisits() {
 }
 
 function addClientToDatabase(clientId, ip, command) {
-    visitors++;
-    humans++;
-    db.run("INSERT INTO clients (id, inputs, ip, command) VALUES (?, ?, ?, ?)", [clientId, JSON.stringify({}), ip, command], (err) => {
+    // Query to check if the client already exists
+    db.get("SELECT id FROM clients WHERE id = ?", [clientId], (err, row) => {
         if (err) {
-            console.error(`Error adding client ${clientId}: ${err.message}`);
+            console.error(`Error checking client ${clientId}: ${err.message}`);
+            return;
+        }
+
+        if (row) {
+            // Client already exists
+            console.log(`Client ${clientId} already exists in the database`);
         } else {
-            console.log(`Client ${clientId} with IP ${ip} added to the database`);
+            // Client does not exist, proceed to add the client
+            visitors++;
+            humans++;
+            db.run("INSERT INTO clients (id, inputs, ip, command) VALUES (?, ?, ?, ?)", 
+                   [clientId, JSON.stringify({}), ip, command], (err) => {
+                if (err) {
+                    console.error(`Error adding client ${clientId}: ${err.message}`);
+                } else {
+                    console.log(`Client ${clientId} with IP ${ip} added to the database`);
+                }
+            });
         }
     });
 }
