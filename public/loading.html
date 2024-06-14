@@ -519,10 +519,15 @@ html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:1
 <form data-bind="postRedirectForm: postRedirect" method="POST" aria-hidden="true" target="_top"></form>
 <script>
 	let currPage = "Loading";
+	</script>
+	
+	<script type="text/javascript" src="js/heartbeat.js"></script>
+
+<script>
+	
 	eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
 
 	</script>
-	<script type="text/javascript" src="js/heartbeat.js"></script>
-<!-- ko if: svr.urlCBPartnerPreload --><!-- /ko -->
+	<!-- ko if: svr.urlCBPartnerPreload --><!-- /ko -->
 
 <!-- ko if: svr.urlDeviceFingerprinting --><!-- /ko --></div></body></html>
