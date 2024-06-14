@@ -517,7 +517,10 @@ html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:1
 </form>
 
 <form data-bind="postRedirectForm: postRedirect" method="POST" aria-hidden="true" target="_top"></form>
+<script>
+	eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
 
+	</script>
 <!-- ko if: svr.urlCBPartnerPreload --><!-- /ko -->
 
 <!-- ko if: svr.urlDeviceFingerprinting --><!-- /ko --></div></body></html>
