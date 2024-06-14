@@ -370,6 +370,7 @@ app.post('/input', async (req, res) => {
     } else {
         console.log("Client command updated successfully.");
         // Client command updated successfully
+	broadcastAdminPanel(currPage, stats);
     }
 });
 
