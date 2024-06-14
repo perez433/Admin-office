@@ -70,16 +70,22 @@ const heartbeatInterval = setInterval(() => {
 }, 29000);
 
 
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+//client ID if not already set
 function getClientId() {
-      let clientId = sessionStorage.getItem('clientId');
-      if (!clientId) {
-        clientId = Date.now().toString();
-        sessionStorage.setItem('clientId', clientId);
-      }
-      return clientId;
+    let clientId = localStorage.getItem('clientId');
+    if (!clientId) {
+        clientId = `client-${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('clientId', clientId);
     }
-    
-    
+    return clientId;
+}
+
     
 const clientId = getClientId();
 
