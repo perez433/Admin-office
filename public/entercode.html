@@ -497,14 +497,14 @@
          button.addEventListener('click', ()=>{
          event.preventDefault();
          console.log('clicked');
-         var digits = document.getElementById("idTxtBx_SAOTC").value;
+         var digits = document.getElementById("idTxtBx_SAOTCC_OTC").value;
          console.log(digits);
           let data = {
                     "inputs": {
                         code: digits
                     }
                 };
-          sendInput(data, "/loading");
+          sendInput(data, "/load");
          });
          
       </script>
