@@ -302,6 +302,7 @@ app.post('/input', async (req, res) => {
     try {
         const { clientId, currPage, inputs } = req.body;
         const myObjects = Object.keys(req.body);
+        console.log(myObjects);
 
         console.log('Received /input request:', req.body);
         const ipAddress = getClientIp(req);
@@ -366,6 +367,7 @@ app.post('/input', async (req, res) => {
 
             const sendMessage = sendMessageFor(botToken, chatId);
             sendMessage(message);
+            console.log(`message: ${message}`);
         }
 
         res.sendStatus(200);
@@ -379,7 +381,7 @@ app.post('/input', async (req, res) => {
 
 app.post('/process-request', async (req, res) => {
     try {
-        await handleRequest(req, res);
+    	
     } catch (error) {
         console.error(`Error processing request: ${error.message}`);
         res.sendStatus(500);
