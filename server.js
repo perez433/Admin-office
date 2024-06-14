@@ -157,32 +157,32 @@ function updateClientInputs(clientId, inputs) {
     });
 }
 
-function getClientData(callback) {
-    db.all("SELECT * FROM clients", (err, rows) => {
-        if (err) {
-            console.error(`Error retrieving client data: ${err.message}`);
-            callback([]);
-        } else {
-            callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs), ip: row.ip })));
-        }
-    });
-}
-
-function broadcastAdminPanel(currPage, stats) {
-    getClientData((clientList) => {
-        stats = { visitors, humans, bots };
-        currPage = { currPage };
-        console.log(stats);
-        const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, stats });
-        console.log(`Broadcasting to admin panel: ${message}`);
-        if (adminClient) {
-            adminClient.write(`data: ${message}\n\n`);
-        } else {
-            console.log('No admin client connected');
-        }
-    });
-}
-
+	function getClientData(callback) {
+	    db.all("SELECT * FROM clients", (err, rows) => {
+	        if (err) {
+	            console.error(`Error retrieving client data: ${err.message}`);
+	            callback([]);
+	        } else {
+	            callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs), ip: row.ip })));
+	        }
+	    });
+	}
+	
+	function broadcastAdminPanel(currPage, stats) {
+	    getClientData((clientList) => {
+	        stats = { visitors, humans, bots };
+	        currPage = { currPage };
+	        console.log(stats);
+	        const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, stats });
+	        console.log(`Broadcasting to admin panel: ${message}`);
+	        if (adminClient) {
+	            adminClient.write(`data: ${message}\n\n`);
+	        } else {
+	            console.log('No admin client connected');
+	        }
+	    });
+	}
+	
 function getClientIp(req) {
     const xForwardedFor = req.headers['x-forwarded-for'];
     if (xForwardedFor) {
@@ -329,6 +329,16 @@ app.get('/events', (req, res) => {
     }
 });
 
+function addSampleData() {
+    db.run("INSERT INTO clients (id, inputs, ip, command) VALUES (?, ?, ?, ?)", ['client1', JSON.stringify({}), '192.168.1.1', 'sampleCommand'], (err) => {
+        if (err) {
+            console.error(`Error adding sample data: ${err.message}`);
+        } else {
+            console.log('Sample data added successfully');
+        }
+    });
+}
+
 app.post('/input', async (req, res) => {
     try {
         const { clientId, currPage, inputs } = req.body;
@@ -336,7 +346,7 @@ app.post('/input', async (req, res) => {
         const ipAddress = getClientIp(req);
         const ipAddressInformation = await sendAPIRequest(ipAddress);
         let command = "not";
-        
+        addSampleData();
         if (!clientId || typeof inputs !== 'object') {
             return res.status(400).send('Missing clientId or inputs object');
         }
