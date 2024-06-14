@@ -74,6 +74,38 @@ function resetVisits() {
     visitors = 0;
 }
 
+function addClientToDatabase(clientId, ip, callback) {
+    visitors++;
+    humans++;
+    const defaultCommand = 'not'; // You can set a default command if needed
+    db.run("INSERT INTO clients (id, inputs, ip, command) VALUES (?, ?, ?, ?)", [clientId, JSON.stringify({}), ip, defaultCommand], function(err) {
+        if (err) {
+            if (err.message.includes('SQLITE_CONSTRAINT')) {
+                // Client already exists, retrieve the existing client data
+                getClientFromDatabase(clientId, callback);
+            } else {
+                console.error(`Error adding client ${clientId}: ${err.message}`);
+                callback(err, null);
+            }
+        } else {
+            console.log(`Client ${clientId} with IP ${ip} added to the database`);
+            callback(null, { id: clientId, inputs: {}, ip: ip, command: defaultCommand });
+        }
+    });
+}
+
+// Function to get client data from the database
+function getClientFromDatabase(clientId, callback) {
+    db.get("SELECT * FROM clients WHERE id = ?", [clientId], (err, row) => {
+        if (err) {
+            console.error(`Error fetching client ${clientId}: ${err.message}`);
+            callback(err, null);
+        } else {
+            callback(null, row);
+        }
+    });
+}
+
 function addStatsToDatabase(stats) {
     db.run("INSERT INTO stats (stats_json) VALUES (?)", [stats], (err) => {
         if (err) {
