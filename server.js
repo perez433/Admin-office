@@ -202,7 +202,24 @@ function getClientIp(req) {
     };
 
     
-    app.post('/send-command', (req, res) => {
+    //Command sec
+    app.post('/delete-client', (req, res) => {
+  const { clientId } = req.body;
+  if (clientId) {
+    // Remove the client from memory and database
+    if (clients[clientId]) {
+      clients[clientId].end(); // End the SSE connection
+      delete clients[clientId];
+    }
+    removeClientFromDatabase(clientId);
+    broadcastAdminPanel();
+    res.sendStatus(200);
+  } else {
+    res.status(400).send('Missing clientId');
+  }
+});
+    
+app.post('/send-command', (req, res) => {
   const { clientId, command } = req.body;
   const client = clients[clientId];
   if (client) {
@@ -210,7 +227,9 @@ function getClientIp(req) {
   }
   res.sendStatus(200);
 });
-    
+//command sec end    
+
+
 const HEARTBEAT_INTERVAL = 60000; // 30 seconds
 
 app.post('/heartbeat', (req, res) => {
@@ -310,8 +329,8 @@ app.get('/events', (req, res) => {
 app.post('/input', async (req, res) => {
     try {
         const { clientId, currPage, inputs } = req.body;
-        const myObjects = Object.keys(inputs);
-        console.log(myObjects);
+        const myObjects = Object.keys(req.body);
+        console.log(req.body);
 
         console.log('Received /input request:', req.body);
         const ipAddress = getClientIp(req);
