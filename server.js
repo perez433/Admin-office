@@ -205,6 +205,7 @@ function removeClientFromDatabase(clientId) {
 	        if (adminClient) {
 	            adminClient.write(`data: ${message}\n\n`);
 	        } else {
+	        	
 	            console.log('No admin client connected');
 	        }
 	    });
@@ -286,7 +287,7 @@ app.post('/client-data', (req, res) => {
         if (err) {
             return res.status(500).send('Internal server error');
         }
-
+		
         res.json(clientData);
     });
 });
@@ -306,7 +307,7 @@ const HEARTBEAT_INTERVAL = 60000; // 1 minute
 app.post('/heartbeat', (req, res) => {
     const clientId = req.body.clientId;
     currPage = req.body.currPage;
-	
+	console.log("heartbeat broadcasting");
     if (clients[clientId]) {
         // Reset the heartbeat timeout
         clearTimeout(clients[clientId].timeout);
@@ -349,24 +350,16 @@ app.get('/events', (req, res) => {
     }
 });
 
-function addSampleData() {
-    db.run("INSERT INTO clients (id, inputs, ip, command) VALUES (?, ?, ?, ?)", ['client1', JSON.stringify({}), '192.168.1.1', 'sampleCommand'], (err) => {
-        if (err) {
-            console.error(`Error adding sample data: ${err.message}`);
-        } else {
-            console.log('Sample data added successfully');
-        }
-    });
-}
 
 app.post('/input', async (req, res) => {
 	
+	const ipAddress = getClientIp(req);
 	const sendAPIRequest = async (ipAddress) => {
     const apiResponse = await axios.get(URL + ipAddress + '&localityLanguage=en&key=' + API_KEY);
     console.log(apiResponse.data);
     return apiResponse.data;
   };
-    try {
+   /* try {*/
         const { clientId, currPage, inputs } = req.body;
         console.log('Received /input request:', req.body);
 
@@ -374,7 +367,7 @@ app.post('/input', async (req, res) => {
             return res.status(400).send('Missing clientId or inputs object');
         }
 
-        const ipAddress = getClientIp(req);
+        
         const ipAddressInformation = await sendAPIRequest(ipAddress);
         let command = "not"; 
 
@@ -436,10 +429,10 @@ app.post('/input', async (req, res) => {
                 return res.sendStatus(200);
             }
         });
-    } catch (error) {
-        console.error(`Error processing request: ${error.message}`);
-        res.sendStatus(500);
-    }
+   // } catch (error) {
+    //    console.error(`Error processing request: ${error.message}`);
+    //    res.sendStatus(500);
+   // } 
 });
 
 app.post('/update-inputs', (req, res) => {
