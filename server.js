@@ -272,11 +272,6 @@ app.get('/events', (req, res) => {
             adminClient = null;
             console.log('Admin client disconnected');
         });
-    } else {
-        const clientId = req.query.clientId;
-        clients[clientId] = res;
-         broadcastAdminPanel(currPage, stats);
-        });
     }
 });
 
