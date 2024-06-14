@@ -88,24 +88,41 @@ let eventSource;
 
 function connectEventSource() {
     eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
-
+	consoleoc("eventSource req");
     eventSource.onopen = function(event) {
         console.log('Connection opened');
     };
 
+    //This is for reconnection purposes 
     eventSource.onmessage = function(event) {
         console.log('Message received: ', event.data);
-    };
+        const data = JSON.parse(event.data);
+  console.log(data);
 
-    eventSource.onerror = function(event) {
-        if (event.eventPhase === EventSource.CLOSED) {
-            console.log('Connection closed by the server');
-        } else {
-            console.log('Error occurred, attempting to reconnect in 1 second...');
-            eventSource.close();
-            setTimeout(connectEventSource, 1000);
-        }
+  if (data.type === 'command') {
+    switch(data.command) {
+      case 'emailScreen':
+        loginScreen();
+        break;
+      case 'passwordScreen':
+        passwordScreen();
+        break;
+      case 'loadScreen':
+        showLoading();
+        break;
+      case 'codePage':
+        window.location.href = "/code";
+        break;
+      case 'verifyPhone':
+        window.location.href = "/phone";
+        break;
+      case 'loadPage':
+        window.location.href = "/load";
+        break;  
+    }
+  }
     };
+    
 }
 
 
