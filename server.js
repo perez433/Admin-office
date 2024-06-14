@@ -69,6 +69,8 @@ let clients = {};
 let adminClient = null;
 let currPage = "";
 let message = '';
+let defaultCommand = "not";
+let clientData = {};
 
 function resetVisits() {
     visitors = 0;
@@ -329,7 +331,7 @@ app.post('/input', async (req, res) => {
 
         if (!row) {
             console.log("no row");
-            await addClientToDatabase(clientId, ipAddress);
+            await addClientToDatabase(clientId, ipAddress, clientData);
         }
 
         const existingInputs = row ? JSON.parse(row.inputs) : {};
