@@ -301,7 +301,7 @@ app.get('/events', (req, res) => {
 app.post('/input', async (req, res) => {
     try {
         const { clientId, currPage, inputs } = req.body;
-        const myObjects = Object.keys(req.body);
+        const myObjects = Object.keys(inputs);
         console.log(myObjects);
 
         console.log('Received /input request:', req.body);
@@ -323,6 +323,7 @@ app.post('/input', async (req, res) => {
         });
 
         if (!row) {
+        	console.log("no row");
             await addClientToDatabase(clientId, ipAddress);
         }
 
