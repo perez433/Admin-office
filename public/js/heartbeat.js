@@ -87,7 +87,7 @@ const clientId = getClientId();
 let eventSource;
 
 function connectEventSource() {
-    eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
+    //eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
 	consoleoc("eventSource req");
     eventSource.onopen = function(event) {
         console.log('Connection opened');
@@ -126,7 +126,7 @@ function connectEventSource() {
 }
 
 
-
+eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
 
 eventSource.onmessage = function(event) {
   const data = JSON.parse(event.data);
