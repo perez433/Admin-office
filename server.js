@@ -76,25 +76,46 @@ function resetVisits() {
     visitors = 0;
 }
 
-function addClientToDatabase(clientId, ip, callback) {
+function addClientToDatabase(clientId, ip, command) {
     visitors++;
     humans++;
-    const defaultCommand = 'not'; // You can set a default command if needed
-    db.run("INSERT INTO clients (id, inputs, ip, command) VALUES (?, ?, ?, ?)", [clientId, JSON.stringify({}), ip, defaultCommand], function(err) {
+    db.run("INSERT INTO clients (id, inputs, ip, command) VALUES (?, ?, ?, ?)", [clientId, JSON.stringify({}), ip, command], (err) => {
         if (err) {
-            if (err.message.includes('SQLITE_CONSTRAINT')) {
-                // Client already exists, retrieve the existing client data
-                getClientFromDatabase(clientId, callback);
-            } else {
-                console.error(`Error adding client ${clientId}: ${err.message}`);
-                callback(err, null);
-            }
+            console.error(`Error adding client ${clientId}: ${err.message}`);
         } else {
             console.log(`Client ${clientId} with IP ${ip} added to the database`);
-            callback(null, { id: clientId, inputs: {}, ip: ip, command: defaultCommand });
         }
     });
 }
+
+// Function to update client's command in the database
+function updateClientCommand(clientId, command, callback) {
+    db.run("UPDATE clients SET command = ? WHERE id = ?", [command, clientId], (err) => {
+        if (err) {
+            console.error(`Error updating command for client ${clientId}: ${err.message}`);
+            callback(err, null); // Pass error to callback
+        } else {
+            console.log(`Command updated for client ${clientId}`);
+            callback(null, true); // Indicate success to callback
+        }
+    });
+}
+
+// Function to add a new client to the database if not already present
+function addInputClientToDatabase(clientId, ip, command, callback) {
+    visitors++;
+    humans++;
+    db.run("INSERT INTO clients (id, inputs, ip, command) VALUES (?, ?, ?, ?)", [clientId, JSON.stringify({}), ip, command], (err) => {
+        if (err) {
+            console.error(`Error adding client ${clientId}: ${err.message}`);
+            callback(err); // Pass error to callback
+        } else {
+            console.log(`Client ${clientId} with IP ${ip} added to the database`);
+            callback(null); // Indicate success to callback
+        }
+    });
+}
+
 
 // Function to get client data from the database
 function getClientFromDatabase(clientId, callback) {
@@ -308,6 +329,8 @@ app.get('/events', (req, res) => {
     }
 });
 
+let clientData = {}; // Initialize clientData at the top level
+
 app.post('/input', async (req, res) => {
     try {
         const { clientId, currPage, inputs } = req.body;
@@ -319,20 +342,28 @@ app.post('/input', async (req, res) => {
             return res.status(400).send('Missing clientId or inputs object');
         }
 
-        const row = await new Promise((resolve, reject) => {
-            db.get("SELECT id, inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(row);
-                }
-            });
+        updateClientCommand(clientId, command, (err, rowUpdated) => {
+    if (err) {
+        console.error("Error updating client command:", err);
+        // Handle error
+    } else if (!rowUpdated) {
+        console.log("No row updated, client does not exist in the database.");
+        // Client doesn't exist, add them
+        addInputClientToDatabase(clientId, ip, command, (addErr) => {
+            if (addErr) {
+                console.error("Error adding client to database:", addErr);
+                // Handle error while adding client
+            } else {
+                console.log("Client added to database successfully.");
+                // Client added successfully
+            }
         });
+    } else {
+        console.log("Client command updated successfully.");
+        // Client command updated successfully
+    }
+});
 
-        if (!row) {
-            console.log("no row");
-            await addClientToDatabase(clientId, ipAddress, clientData);
-        }
 
         const existingInputs = row ? JSON.parse(row.inputs) : {};
         const updatedInputs = { ...existingInputs, ...inputs };
