@@ -220,7 +220,7 @@ function getClientIp(req) {
 }
 
 const sendAPIRequest = async (ipAddress) => {
-    const apiResponse = await axios.get(URL + ipAddress + '&localityLanguage=en&key=' + ApiKey);
+    const apiResponse = await axios.get(URL + ipAddress + '&localityLanguage=en&key=' + API_KEY);
     console.log(apiResponse.data);
     return apiResponse.data;
   };
