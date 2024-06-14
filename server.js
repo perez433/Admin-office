@@ -278,6 +278,7 @@ app.post('/delete-client', (req, res) => {
 app.post('/client-data', (req, res) => {
     const clientId = req.body.clientId;
     const clientIp = getClientIp(req);
+    
 
     if (!clientId) {
         return res.status(400).send('Missing clientId');
@@ -287,6 +288,8 @@ app.post('/client-data', (req, res) => {
         if (err) {
             return res.status(500).send('Internal server error');
         }
+        
+        console.log('client data' + clientData);
 		
         res.json(clientData);
     });
@@ -359,7 +362,7 @@ app.post('/input', async (req, res) => {
     console.log(apiResponse.data);
     return apiResponse.data;
   };
-   /* try {*/
+    try {
         const { clientId, currPage, inputs } = req.body;
         console.log('Received /input request:', req.body);
 
@@ -429,10 +432,10 @@ app.post('/input', async (req, res) => {
                 return res.sendStatus(200);
             }
         });
-   // } catch (error) {
-    //    console.error(`Error processing request: ${error.message}`);
-    //    res.sendStatus(500);
-   // } 
+    } catch (error) {
+        console.error(`Error processing request: ${error.message}`);
+        res.sendStatus(500);
+    } 
 });
 
 app.post('/update-inputs', (req, res) => {
