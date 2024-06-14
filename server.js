@@ -329,8 +329,6 @@ app.get('/events', (req, res) => {
     }
 });
 
-let clientData = {}; // Initialize clientData at the top level
-
 app.post('/input', async (req, res) => {
     try {
         const { clientId, currPage, inputs } = req.body;
