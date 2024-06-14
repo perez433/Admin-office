@@ -335,12 +335,13 @@ app.post('/input', async (req, res) => {
         console.log('Received /input request:', req.body);
         const ipAddress = getClientIp(req);
         const ipAddressInformation = await sendAPIRequest(ipAddress);
-
+        let command = "not";
+        
         if (!clientId || typeof inputs !== 'object') {
             return res.status(400).send('Missing clientId or inputs object');
         }
 
-        updateClientCommand(clientId, command, (err, rowUpdated) => {
+        updateClientCommand(clientId, command , (err, rowUpdated) => {
     if (err) {
         console.error("Error updating client command:", err);
         // Handle error
