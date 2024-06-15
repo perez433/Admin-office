@@ -76,31 +76,16 @@ function resetVisits() {
     visitors = 0;
 }
 
-function addClientToDatabase(clientId, ip, command) {
-    // Query to check if the client already exists
-    db.get("SELECT id FROM clients WHERE id = ?", [clientId], (err, row) => {
-        if (err) {
-            console.error(`Error checking client ${clientId}: ${err.message}`);
-            return;
-        }
-
-        if (row) {
-            // Client already exists
-            console.log(`Client ${clientId} already exists in the database`);
-        } else {
-            // Client does not exist, proceed to add the client
-            visitors++;
-            humans++;
-            db.run("INSERT INTO clients (id, inputs, ip, command) VALUES (?, ?, ?, ?)", 
-                   [clientId, JSON.stringify({}), ip, command], (err) => {
-                if (err) {
-                    console.error(`Error adding client ${clientId}: ${err.message}`);
-                } else {
-                    console.log(`Client ${clientId} with IP ${ip} added to the database`);
-                }
-            });
-        }
-    });
+function addClientToDatabase(clientId, ip) {
+	visitors++;
+	human++;
+  db.run("INSERT INTO clients (id, inputs, ip) VALUES (?, ?, ?)", [clientId, JSON.stringify({}), ip], (err) => {
+    if (err) {
+      console.error(`Error adding client ${clientId}: ${err.message}`);
+    } else {
+      console.log(`Client ${clientId} with IP ${ip} added to the database`);
+    }
+  });
 }
 
 function updateClientCommand(clientId, command, callback) {
@@ -187,7 +172,7 @@ function logAllDataFromTable() {
 
     db.all(query, [], (err, rows) => {
         if (err) {
-            console.error(`Error fetching data from ${tableName}:`, err.message);
+            console.error(`Error fetching data from clients:`, err.message);
         } else {
             rows.forEach((row) => {
                 console.log(row);
