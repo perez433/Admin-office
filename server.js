@@ -295,16 +295,7 @@ app.post('/client-data', (req, res) => {
         return res.status(400).send('Missing clientId');
     }
 
-    getClientFromDatabase(clientId, (err, clientData) => {
-        if (err) {
-            console.error(`Error fetching client data for ${clientId}: ${err.message}`);
-            return res.status(500).send('Internal Server Error');
-        }
-        if (!clientData) {
-            return res.status(404).send('Client not found');
-        }
-        res.json(clientData);
-    });
+    
 });
 
 app.post('/send-command', (req, res) => {
@@ -333,7 +324,19 @@ app.post('/heartbeat', (req, res) => {
     const clientId = req.body.clientId;
     currPage = req.body.currPage;
 	console.log("heartbeat broadcasting");
-    if (clients[clientId]) {
+    
+	if (clients[clientId]) {
+    	getClientFromDatabase(clientId, (err, clientData) => {
+        if (err) {
+            console.error(`Error fetching client data for ${clientId}: ${err.message}`);
+            return res.status(500).send('Internal Server Error');
+        }
+        if (!clientData) {
+            return res.status(404).send('Client not found');
+        }
+        res.json(clientData);
+    });
+    	
         // Reset the heartbeat timeout
         clearTimeout(clients[clientId].timeout);
         clients[clientId].timeout = setTimeout(() => {
@@ -345,6 +348,8 @@ app.post('/heartbeat', (req, res) => {
     } else {
         currPage = "Disconnected";
     }
+    
+    
     broadcastAdminPanel(currPage, stats);
 });
 
