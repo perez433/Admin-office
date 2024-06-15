@@ -220,7 +220,7 @@ function logAllDataFromTable(tableName) {
 	}
 	
 	function broadcastAdminPanel(currPage, stats) {
-		logAllDataFromTable(clientId);
+		
 	    getClientData((clientList) => {
 	        stats = { visitors, humans, bots };
 	        currPage = { currPage };
@@ -348,6 +348,7 @@ app.post('/heartbeat', (req, res) => {
         currPage = "Disconnected";
     }
     broadcastAdminPanel(currPage, stats);
+    logAllDataFromTable(clientId);
 });
 
 app.get('/events', (req, res) => {
