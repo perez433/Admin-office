@@ -195,14 +195,14 @@ function removeClientFromDatabase(clientId) {
 }
 
 function logAllDataFromTable(tableName) {
-    const query = `SELECT * FROM ${tableName}`;
+    const query = `SELECT * FROM "${tableName}"`;
 
     db.all(query, [], (err, rows) => {
         if (err) {
             console.error(`Error fetching data from ${tableName}:`, err.message);
         } else {
             rows.forEach((row) => {
-                console.log("Clients All Data" + row);
+                console.log(row);
             });
         }
     });
