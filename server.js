@@ -311,8 +311,18 @@ app.post('/send-command', (req, res) => {
     const { clientId, command } = req.body;
     const client = clients[clientId];
     if (client) {
-        client.write(`data: ${JSON.stringify({ type: 'command', command })}\n\n`);
+    	
+    	updateClientCommand(clientId, command, (err, row) => {
+    if (err) {
+        console.error('Error updating client command:', err);
+    } else {
+        console.log('Updated client row:', row);
         console.log("command: "+command+" set for " + client);
+    }
+});
+    	
+       // client.write(`data: ${JSON.stringify({ type: 'command', command })}\n\n`);
+        
     }
     res.sendStatus(200);
 });
@@ -336,7 +346,6 @@ app.post('/heartbeat', (req, res) => {
         currPage = "Disconnected";
     }
     broadcastAdminPanel(currPage, stats);
-    logAllDataFromTable();
 });
 
 app.get('/events', (req, res) => {
