@@ -303,7 +303,7 @@ app.post('/client-data', (req, res) => {
         if (!clientData) {
             return res.status(404).send('Client not found');
         }
-        console.log("cl data :" clientData);
+        console.log("cl data :"+ clientData);
         res.json(clientData);
     });
 });
