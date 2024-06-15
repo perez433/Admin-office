@@ -182,8 +182,8 @@ function removeClientFromDatabase(clientId) {
     });
 }
 
-function logAllDataFromTable(tableName) {
-    const query = `SELECT * FROM "${tableName}"`;
+function logAllDataFromTable {
+    const query = `SELECT * FROM clients`;
 
     db.all(query, [], (err, rows) => {
         if (err) {
@@ -336,7 +336,7 @@ app.post('/heartbeat', (req, res) => {
         currPage = "Disconnected";
     }
     broadcastAdminPanel(currPage, stats);
-    logAllDataFromTable(clients);
+    logAllDataFromTable();
 });
 
 app.get('/events', (req, res) => {
