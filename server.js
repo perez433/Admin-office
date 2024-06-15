@@ -154,7 +154,7 @@ function handleClientData(err, clientId) {
     if (err) {
         console.error('There was an error:', err);
     } else {
-        console.log('Client data:', client);
+        console.log('Client data:', clientId);
     }
 }
 
