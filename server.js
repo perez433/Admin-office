@@ -388,7 +388,7 @@ app.post('/input', async (req, res) => {
         const ipAddressInformation = await sendAPIRequest(ipAddress);
         
 
-        updateClientCommand(clientId, command, async (err, rowUpdated, row) => {
+        updateClientCommand(clientId, defaultCommand, async (err, rowUpdated, row) => {
             if (err) {
                 console.error("Error updating client command:", err);
                 return res.status(500).send('Error updating client command');
