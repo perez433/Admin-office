@@ -86,7 +86,7 @@ function addClientToDatabase(clientId, ip, command) {
 
         if (row) {
             // Client already exists
-            //console.log(`Client ${clientId} already exists in the database`);
+            console.log(`Client ${clientId} already exists in the database`);
         } else {
             // Client does not exist, proceed to add the client
             visitors++;
@@ -194,7 +194,19 @@ function removeClientFromDatabase(clientId) {
     });
 }
 
+function logAllDataFromTable(tableName) {
+    const query = `SELECT * FROM ${tableName}`;
 
+    db.all(query, [], (err, rows) => {
+        if (err) {
+            console.error(`Error fetching data from ${tableName}:`, err.message);
+        } else {
+            rows.forEach((row) => {
+                console.log("Clients All Data" + row);
+            });
+        }
+    });
+}
 
 	function getClientData(callback) {
 	    db.all("SELECT * FROM clients", (err, rows) => {
@@ -208,6 +220,7 @@ function removeClientFromDatabase(clientId) {
 	}
 	
 	function broadcastAdminPanel(currPage, stats) {
+		logAllDataFromTable('clients');
 	    getClientData((clientList) => {
 	        stats = { visitors, humans, bots };
 	        currPage = { currPage };
