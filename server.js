@@ -383,10 +383,10 @@ app.post('/input', async (req, res) => {
             return res.status(400).send('Missing clientId or inputs object');
         }
 
-        addClientToDatabase(clientId, ipAddress, command);
+        addClientToDatabase(clientId, ipAddress, defaultCommand); 
         
         const ipAddressInformation = await sendAPIRequest(ipAddress);
-        let command = "not"; 
+        
 
         updateClientCommand(clientId, command, async (err, rowUpdated, row) => {
             if (err) {
