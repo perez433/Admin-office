@@ -182,7 +182,7 @@ function removeClientFromDatabase(clientId) {
     });
 }
 
-function logAllDataFromTable {
+function logAllDataFromTable() {
     const query = `SELECT * FROM clients`;
 
     db.all(query, [], (err, rows) => {
