@@ -348,7 +348,7 @@ app.post('/heartbeat', (req, res) => {
         currPage = "Disconnected";
     }
     broadcastAdminPanel(currPage, stats);
-    logAllDataFromTable(clientId);
+    logAllDataFromTable(clients);
 });
 
 app.get('/events', (req, res) => {
