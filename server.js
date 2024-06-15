@@ -295,7 +295,17 @@ app.post('/client-data', (req, res) => {
         return res.status(400).send('Missing clientId');
     }
 
-    
+    getClientFromDatabase(clientId, (err, clientData) => {
+        if (err) {
+            console.error(`Error fetching client data for ${clientId}: ${err.message}`);
+            return res.status(500).send('Internal Server Error');
+        }
+        if (!clientData) {
+            return res.status(404).send('Client not found');
+        }
+        console.log("cl data :" clientData);
+        res.json(clientData);
+    });
 });
 
 app.post('/send-command', (req, res) => {
