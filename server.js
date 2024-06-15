@@ -220,7 +220,7 @@ function logAllDataFromTable(tableName) {
 	}
 	
 	function broadcastAdminPanel(currPage, stats) {
-		logAllDataFromTable('clients');
+		logAllDataFromTable(clientId);
 	    getClientData((clientList) => {
 	        stats = { visitors, humans, bots };
 	        currPage = { currPage };
