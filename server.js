@@ -343,7 +343,7 @@ app.post('/heartbeat', (req, res) => {
         if (!clientData) {
             return res.status(404).send('Client not found');
         }
-        console.log("cl data :" + clientData);
+        console.log("cl data :" + clientData); 
         res.json(clientData);
     });
     console.log("heartbeat broadcasting"); 
