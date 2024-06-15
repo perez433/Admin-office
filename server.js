@@ -284,9 +284,9 @@ app.post('/client-data', (req, res) => {
         return res.status(400).send('Missing clientId');
     }
 
-    getClientFromDatabase(clientId, client); 
+    getClientFromDatabase(clientId, clients); 
 
-        console.log('client data', client);
+        console.log('client data', clients);
         res.json(client);
 });
 
