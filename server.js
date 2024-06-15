@@ -137,18 +137,6 @@ function updateClientInputs(clientId, inputs) {
     });
 }
 
-function addInputClientToDatabase(clientId, ip, command, callback) {
-    db.run("INSERT OR IGNORE INTO clients (id, inputs, ip, command) VALUES (?, ?, ?, ?)", [clientId, JSON.stringify({}), ip, command], (err) => {
-        if (err) {
-            console.error(`Error adding client ${clientId}: ${err.message}`);
-            callback(err);
-        } else {
-            console.log(`Client ${clientId} with IP ${ip} added to the database`);
-            callback(null);
-        }
-    });
-}
-
 
 // Function to get client data from the database
 const clientCache = {};
