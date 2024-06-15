@@ -150,6 +150,14 @@ function addInputClientToDatabase(clientId, ip, command, callback) {
 }
 
 
+handleClientData(err, client) {
+    if (err) {
+        console.error('There was an error:', err);
+    } else {
+        console.log('Client data:', client);
+    }
+}
+
 // Function to get client data from the database
 function getClientFromDatabase(clientId, callback) {
     db.get("SELECT * FROM clients WHERE id = ?", [clientId], (err, row) => {
@@ -190,7 +198,7 @@ function removeClientFromDatabase(clientId) {
 	            console.error(`Error retrieving client data: ${err.message}`);
 	            callback([]);
 	        } else {
-	            callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs), ip: row.ip })));
+	            callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs), ip: row.ip, command: row.command })));
 	        }
 	    });
 	}
@@ -284,7 +292,7 @@ app.post('/client-data', (req, res) => {
         return res.status(400).send('Missing clientId');
     }
 
-    getClientFromDatabase(clientId, clients); 
+    getClientFromDatabase(clientId, handleClientData); 
 
         console.log('client data', clients);
         res.json(client);
