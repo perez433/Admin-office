@@ -278,7 +278,7 @@ app.post('/delete-client', (req, res) => {
 app.post('/client-data', (req, res) => {
     const clientId = req.body.clientId;
     const clientIp = getClientIp(req);
-    //const client = clients[clientId];
+    const client = clients[clientId];
 
     if (!clientId) {
         return res.status(400).send('Missing clientId');
