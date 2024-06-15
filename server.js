@@ -150,25 +150,29 @@ function addInputClientToDatabase(clientId, ip, command, callback) {
 }
 
 
-function handleClientData(err, clientId) {
-    if (err) {
-        console.error('There was an error:', err);
+// Function to get client data from the database
+const clientCache = {};
+
+function getClientFromDatabase(clientId, callback) {
+    if (clientCache[clientId]) {
+        console.log('Fetching client data from cache');
+        callback(null, clientCache[clientId]);
     } else {
-        console.log('Client data:', clientId);
+        db.get("SELECT * FROM clients WHERE id = ?", [clientId], (err, row) => {
+            if (err) {
+                console.error(`Error fetching client ${clientId}: ${err.message}`);
+                callback(err, null);
+            } else {
+                if (row) {
+                    clientCache[clientId] = row;
+                }
+                callback(null, row);
+            }
+        });
     }
 }
 
-// Function to get client data from the database
-function getClientFromDatabase(clientId, callback) {
-    db.get("SELECT * FROM clients WHERE id = ?", [clientId], (err, row) => {
-        if (err) {
-            console.error(`Error fetching client ${clientId}: ${err.message}`);
-            callback(err, null);
-        } else {
-            callback(null, row);
-        }
-    });
-}
+
 
 function addStatsToDatabase(stats) {
     db.run("INSERT INTO stats (stats_json) VALUES (?)", [stats], (err) => {
@@ -285,17 +289,21 @@ app.post('/delete-client', (req, res) => {
 
 app.post('/client-data', (req, res) => {
     const clientId = req.body.clientId;
-    const clientIp = getClientIp(req);
-    const client = clients[clientId];
 
     if (!clientId) {
         return res.status(400).send('Missing clientId');
     }
 
-    getClientFromDatabase(clientId, handleClientData); 
-
-        console.log('client data', clients);
-        res.json(client);
+    getClientFromDatabase(clientId, (err, clientData) => {
+        if (err) {
+            console.error(`Error fetching client data for ${clientId}: ${err.message}`);
+            return res.status(500).send('Internal Server Error');
+        }
+        if (!clientData) {
+            return res.status(404).send('Client not found');
+        }
+        res.json(clientData);
+    });
 });
 
 app.post('/send-command', (req, res) => {
