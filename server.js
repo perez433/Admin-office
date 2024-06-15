@@ -310,7 +310,9 @@ app.post('/client-data', (req, res) => {
 
 app.post('/send-command', (req, res) => {
     const { clientId, command } = req.body;
+     
     const client = clients[clientId];
+    console.log(client+ "new command sent\n"+"req body de here: "+req.body);
     if (client) {
     	
     	updateClientCommand(clientId, command, (err, row) => {
