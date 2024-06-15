@@ -150,7 +150,7 @@ function addInputClientToDatabase(clientId, ip, command, callback) {
 }
 
 
-handleClientData(err, client) {
+function handleClientData(err, client) {
     if (err) {
         console.error('There was an error:', err);
     } else {
