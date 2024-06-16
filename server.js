@@ -330,7 +330,9 @@ app.post('/send-command', (req, res) => {
     } else {
         return res.status(404).send('Client not found');
     }
-});p.post('/heartbeat', (req, res) => {
+});
+
+app.post('/heartbeat', (req, res) => {
     const clientId = req.body.clientId;
     currPage = req.body.currPage;
 	
