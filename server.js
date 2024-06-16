@@ -314,19 +314,21 @@ app.post('/send-command', (req, res) => {
     const { clientId, command } = req.body;
 
     const client = clients[clientId];
-    console.log(clientId + " new command sent\n" + "req body de here: " + JSON.stringify(req.body));
+    console.log(clientId +" for client:"+ client + " new command sent\n" + "req body de here: " + JSON.stringify(req.body));
 
-    if (client) {
-        updateClientCommand(clientId, command, (err, row) => {
+    updateClientCommand(clientId, command, (err, row) => {
             if (err) {
                 console.error('Error updating client command:', err);
-                return res.status(500).send('Internal Server Error');
+               // return res.status(500).send('Internal Server Error');
             } else {
                 console.log('Updated client row:', row);
                 console.log("Command: " + command + " set for " + client);
                 return res.status(200).send('Command updated successfully');
             }
         });
+    
+    if (client) {
+        
     } else {
     	console.log('client not found');
         //return res.status(404).send('Client not found');
