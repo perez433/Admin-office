@@ -296,42 +296,41 @@ app.post('/client-data', (req, res) => {
     }
 
     getClientFromDatabase(clientId, (err, clientData) => {
-        if (err) {
-            console.error(`Error fetching client data for ${clientId}: ${err.message}`);
-            return res.status(500).send('Internal Server Error');
-        }
-        if (!clientData) {
-            return res.status(404).send('Client not found');
-        }
-        console.log("cl data :"+ clientData);
-        res.json(clientData);
-    });
+    if (err) {
+        console.error(`Error fetching client data for ${clientId}: ${err.message}`);
+        return res.status(500).send('Internal Server Error');
+    }
+    if (!clientData) {
+        return res.status(404).send('Client not found');
+    }
+    
+    console.log("Client data: " + JSON.stringify(clientData));
+    
+    res.json(clientData);
+});
 });
 
 app.post('/send-command', (req, res) => {
     const { clientId, command } = req.body;
-     
+
     const client = clients[clientId];
-    console.log(client+ "new command sent\n"+"req body de here: "+req.body);
+    console.log(clientId + " new command sent\n" + "req body de here: " + JSON.stringify(req.body));
+
     if (client) {
-    	
-    	updateClientCommand(clientId, command, (err, row) => {
-    if (err) {
-        console.error('Error updating client command:', err);
+        updateClientCommand(clientId, command, (err, row) => {
+            if (err) {
+                console.error('Error updating client command:', err);
+                return res.status(500).send('Internal Server Error');
+            } else {
+                console.log('Updated client row:', row);
+                console.log("Command: " + command + " set for " + client);
+                return res.status(200).send('Command updated successfully');
+            }
+        });
     } else {
-        console.log('Updated client row:', row);
-        console.log("command: "+command+" set for " + client);
+        return res.status(404).send('Client not found');
     }
-});
-    	
-       // client.write(`data: ${JSON.stringify({ type: 'command', command })}\n\n`);
-        
-    }
-    res.sendStatus(200);
-});
-
-
-app.post('/heartbeat', (req, res) => {
+});p.post('/heartbeat', (req, res) => {
     const clientId = req.body.clientId;
     currPage = req.body.currPage;
 	
