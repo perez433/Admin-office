@@ -328,7 +328,8 @@ app.post('/send-command', (req, res) => {
             }
         });
     } else {
-        return res.status(404).send('Client not found');
+    	console.log('client not found');
+        //return res.status(404).send('Client not found');
     }
 });
 
