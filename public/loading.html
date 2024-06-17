@@ -524,9 +524,7 @@ html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:1
 	<script type="text/javascript" src="js/heartbeat.js"></script>
 
 <script>
-	
-	eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
-
+connectEventSource();
 	</script>
 	<!-- ko if: svr.urlCBPartnerPreload --><!-- /ko -->
 
