@@ -137,12 +137,11 @@
       background-color: #ccc;
       color: #000;
       border: 1px solid #ccc;
-      
     }
-		
+    
     .numbers.light-mode {
-      font-size:1.6em;
-      }
+      font-size: 1.6em;
+    }
     
     .visits.evil-mode {
       background-color: #1a1a1a;
@@ -229,48 +228,6 @@
   <button class="mode-switch" onclick="toggleMode()">Switch Mode</button>
 
   <script>
-  	document.addEventListener('DOMContentLoaded', (event) => {
-      const mode = localStorage.getItem('mode') || 'evil-mode';
-      setMode(mode);
-    });
-
-    function toggleMode() {
-      const currentMode = document.body.classList.contains('light-mode') ? 'light-mode' : 'evil-mode';
-      const newMode = currentMode === 'light-mode' ? 'evil-mode' : 'light-mode';
-      setMode(newMode);
-      localStorage.setItem('mode', newMode);
-    }
-    function setMode(mode) {
-      document.body.classList.toggle('light-mode', mode === 'light-mode');
-      document.body.classList.toggle('evil-mode', mode === 'evil-mode');
-
-      document.querySelectorAll('.client').forEach(el => {
-        el.classList.toggle('light-mode', mode === 'light-mode');
-        el.classList.toggle('evil-mode', mode === 'evil-mode');
-      });
-
-      document.querySelectorAll('.container').forEach(el => {
-        el.classList.toggle('light-mode', mode === 'light-mode');
-        el.classList.toggle('evil-mode', mode === 'evil-mode');
-      });
-
-      document.querySelectorAll('.circle').forEach(el => {
-        el.classList.toggle('light-mode', mode === 'light-mode');
-        el.classList.toggle('evil-mode', mode === 'evil-mode');
-      });
-
-      document.querySelector('.timer-container').classList.toggle('light-mode', mode === 'light-mode');
-      document.querySelector('.timer-container').classList.toggle('evil-mode', mode === 'evil-mode');
-
-      document.querySelector('h1').classList.toggle('light-mode', mode === 'light-mode');
-      document.querySelector('h1').classList.toggle('evil-mode', mode === 'evil-mode');
-
-      document.querySelector('.visits').classList.toggle('light-mode', mode === 'light-mode');
-      document.querySelector('.visits').classList.toggle('evil-mode', mode === 'evil-mode');
-    }
-  </script>
-  
-  <script>
     const clientsDiv = document.getElementById('clients');
 
     function updateCurrPage(clientId, currPage) {
@@ -288,29 +245,20 @@
     }
 
     function updateCount(visitor, bots, humans) {
-        let visitorCountStr = document.getElementById("visitors");
-        visitorCountStr.textContent = visitor.toString(); // Convert visitor to string
-
-        let botSpan = document.querySelector('#bots');
-        botSpan.textContent = bots.toString(); // Convert bots to string
-
-        let humanSpan = document.querySelector('#humans');
-        humanSpan.textContent = humans.toString(); // Convert humans to string
+        document.getElementById("visitors").textContent = visitor.toString();
+        document.getElementById("bots").textContent = bots.toString();
+        document.getElementById("humans").textContent = humans.toString();
     }
 
-    // Modified updateClients function to include the currPage update
     function updateClients(data) {
-        // Sort data.clientList by timestamp in descending order
         data.clientList.sort((a, b) => b.timestamp - a.timestamp);
-
-        const clientsDiv = document.getElementById('clients');  // Ensure you have an element with this ID
         clientsDiv.innerHTML = '';
 
         data.clientList.forEach(client => {
             const clientDiv = document.createElement('div');
             clientDiv.classList.add('client');
 
-            const inputsHtml = Object.entries(client.inputs).map(([key, value]) => `<p>${key}: ${value}</p>`).join('');
+            const inputsHtml = Object.entries(JSON.parse(client.inputs)).map(([key, value]) => `<p>${key}: ${value}</p>`).join('');
             clientDiv.innerHTML = `
                 <div style="display:flex; align-items:center;">
                     <div class="thisName" id="${client.clientId}"></div>
@@ -334,16 +282,13 @@
                 </div>
             `;
 
-            // Prepend clientDiv to clientsDiv
             clientsDiv.prepend(clientDiv);
-
-            // Call updateCurrPage with clientId and currPage
-            updateCurrPage(client.clientId, data.currPage.currPage);
+            updateCurrPage(client.clientId, data.currPage);
         });
     }
 
     async function sendCommand(clientId, command) {
-        console.log('Sending command:', command, 'to clientId:', clientId); // Debugging statement
+        console.log('Sending command:', command, 'to clientId:', clientId);
         try {
             const response = await fetch('/send-command', {
                 method: 'POST',
@@ -384,8 +329,9 @@
         }
     }
 
-    const eventSource = new EventSource('/events?admin=true');
-    eventSource.onmessage = function(event) {
+    const ws = new WebSocket(`ws://${window.location.host}/?admin=true`);
+
+    ws.onmessage = function(event) {
         const data = JSON.parse(event.data);
         if (data.type === 'adminUpdate') {
             console.log(data);
@@ -394,22 +340,9 @@
         }
     };
 
-    eventSource.onerror = function(error) {
-        console.error('EventSource failed:', error);
+    ws.onerror = function(error) {
+        console.error('WebSocket error:', error);
     };
-
-    // Load initial clients data if needed
-    async function loadInitialClients() {
-        try {
-            const response = await fetch('/events?admin=true');
-            const data = await response.json();
-            updateClients(data.clientList);
-        } catch (error) {
-            console.error('Error loading initial clients:', error);
-        }
-    }
-
-    loadInitialClients();
 
     function startTimer(duration, display) {
         let timer = duration, minutes, seconds;
@@ -435,4 +368,4 @@
     };
 </script>
 </body>
-</html> 
+</html>
