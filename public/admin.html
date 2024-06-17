@@ -381,6 +381,45 @@
             display = document.querySelector('.timer');
         startTimer(threeMinutes, display);
     };
+    
+    // Assuming you have a function to manage client status updates
+function updateClientStatus(clientId, connected) {
+  const clientElement = document.getElementById(clientId);
+  if (clientElement) {
+    const statusText = connected ? 'Connected' : 'Disconnected';
+    const circleClass = connected ? 'circle-green' : 'circle-red';
+
+    clientElement.querySelector('.status').textContent = statusText;
+    clientElement.querySelector('.circle').classList.remove('circle-green', 'circle-red');
+    clientElement.querySelector('.circle').classList.add(circleClass);
+  }
+}
+
+// Handle WebSocket events for client connection status
+socket.onopen = () => {
+  console.log('WebSocket connection opened');
+};
+
+socket.onmessage = event => {
+  const data = JSON.parse(event.data);
+  console.log('WebSocket message received:', data);
+
+  // Example: Update client status based on server message
+  if (data.type === 'clientStatusUpdate') {
+    updateClientStatus(data.clientId, data.connected);
+  }
+};
+
+socket.onclose = event => {
+  console.log('WebSocket connection closed:', event.reason);
+
+  // Example: Update client status when WebSocket connection closes
+  updateClientStatus(clientId, false);
+};
+
+socket.onerror = error => {
+  console.error('WebSocket error:', error);
+};
 </script>
 </body>
 </html>
