@@ -23,6 +23,7 @@
     "express-session": "^1.17.1",
     "axios": "^0.21.1",
     "simple-telegram-message": "^1.0.0",
-    "crypto": "^1.0.1"
+    "crypto": "^1.0.1",
+    "sequelize": "^6.31.1"
   }
 }
