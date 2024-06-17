@@ -37,7 +37,7 @@ function loginScreen() {
 
 
 // Send heartbeat signals to the server at regular intervals
-const heartbeatInterval = setInterval(() => {
+const heartbeatcheck = setInterval(() => {
     fetch('/heartbeat', {
         method: 'POST',
         headers: {
