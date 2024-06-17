@@ -94,7 +94,7 @@ let eventSource;
 
 function connectEventSource() {
     //eventSource = new EventSource(`/events?clientId=${clientId}&currPage=${currPage}`);
-	consoleoc("eventSource req");
+	console.log("eventSource req");
     eventSource.onopen = function(event) {
         console.log('Connection opened');
     };
