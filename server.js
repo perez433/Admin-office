@@ -7,7 +7,7 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ port: 8080 });
 
 // Initialize in-memory SQLite database
 const db = new sqlite3.Database(':memory:');
@@ -15,6 +15,24 @@ const db = new sqlite3.Database(':memory:');
 // Middleware
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+
+wss.on('connection', function connection(ws, req) {
+  const ip = req.connection.remoteAddress;
+  console.log('Client connected from IP:', ip);
+
+  // Handle incoming messages from clients
+  ws.on('message', function incoming(message) {
+    console.log('Received message:', message);
+    
+    // Example: Broadcast message to all connected clients
+    wss.clients.forEach(function each(client) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  });
+});
 
 // Initialize database schema
 db.serialize(() => {
@@ -173,6 +191,25 @@ app.post('/verify', async (req, res) => {
         res.status(500).json({ success: false, error: 'Failed to verify email' });
     }
 });
+
+
+function updateCurrPage(clientId, currPage, isConnected) {
+    const thisNameElements = document.querySelectorAll('.thisName');
+
+    thisNameElements.forEach(div => {
+        if (div.id === clientId) {
+            console.log("currPage: " + currPage);
+            div.parentElement.children[2].children[1].textContent = isConnected ? currPage : "Disconnected";
+            if (!isConnected) {
+                document.getElementById(`currPage-${clientId}`).previousElementSibling.style.color = "red";
+                document.getElementById(`currPage-${clientId}`).parentElement.children[0].style.backgroundColor = "red";
+            } else {
+                document.getElementById(`currPage-${clientId}`).previousElementSibling.style.color = "";
+                document.getElementById(`currPage-${clientId}`).parentElement.children[0].style.backgroundColor = "green";
+            }
+        }
+    });
+}
 
 setInterval(broadcastAdminPanel, 3000);
 
